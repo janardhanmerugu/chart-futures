@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upstox Futures Chart</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+
+  <!-- SIDE DRAWER -->
+  <div id="side-drawer">
+
+    <!-- BRAND + CONNECT -->
+    <div id="sidebar-top">
+      <div id="sidebar-brand">
+        <span>⚡ UPSTOX FUTURES</span>
+        <span class="badge idle" id="statusBadge">DISC</span>
+      </div>
+      <div id="sidebar-conn">
+        <button class="hbtn primary" id="connectBtn"    onclick="connectWS()">Connect</button>
+        <button class="hbtn danger"  id="disconnectBtn" onclick="disconnectWS()" disabled>Disconnect</button>
+      </div>
+    </div>
+
+    <!-- TOKEN -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">🔑 Access Token</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="display:flex;gap:.3rem">
+          <input type="password" id="token-input" placeholder="Paste Upstox token…" autocomplete="off"
+            style="flex:1;min-width:0"/>
+          <button class="show-hide" id="showHideBtn" onclick="toggleTokenVis()">Show</button>
+        </div>
+        <div style="display:flex;gap:.3rem">
+          <button class="hbtn primary" id="saveTokenBtn" onclick="saveToken()" disabled style="flex:1">Save Token</button>
+          <button class="hbtn ghost"   id="clearTokenBtn" onclick="clearToken()" disabled>Clear</button>
+        </div>
+        <div id="token-status" style="font-size:.65rem;display:flex;align-items:center;gap:.4rem">
+          <div id="tok-dot"></div><span id="tok-msg">Connect first, then save token</span>
+        </div>
+        <span class="tip" style="margin-left:0">Expires daily → <a href="https://developer.upstox.com" target="_blank">developer.upstox.com</a></span>
+      </div>
+    </div>
+
+    <!-- FUTURES -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">⚡ Futures
+        <button class="fut-reload" id="fut-reload-btn" onclick="loadFutures()" title="Refresh" disabled style="margin-left:auto">↺</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        <button class="fbtn" id="fbtn-nf"  onclick="pickFut('nf')"  disabled>
+          <span class="fn">NIFTY FUT</span>
+          <span class="fe" id="fe-nf">connecting…</span>
+        </button>
+        <button class="fbtn" id="fbtn-bnf" onclick="pickFut('bnf')" disabled>
+          <span class="fn">BANKNIFTY FUT</span>
+          <span class="fe" id="fe-bnf">connecting…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- LOAD FILE -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">📁 Load File</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        <label style="font-size:.67rem;color:var(--accent);cursor:pointer;border:1px solid var(--accent);border-radius:5px;padding:.25rem .7rem;background:#00d4ff11;text-align:center" title="Pick a candles.csv saved by this app">
+          Choose candles.csv
+          <input type="file" id="local-file-input" accept=".csv" style="display:none" onchange="loadLocalCSV(this)"/>
+        </label>
+        <label style="font-size:.67rem;color:#ffe033;cursor:pointer;border:1px solid #ffe03388;border-radius:5px;padding:.25rem .7rem;background:#ffe03311;text-align:center" title="Pick a ticks.csv saved by this app">
+          Choose ticks.csv
+          <input type="file" id="local-ticks-input" accept=".csv" style="display:none" onchange="loadLocalTicks(this)"/>
+        </label>
+        <span id="local-file-status" style="font-size:.62rem;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- SYMBOLS + INTERVAL + LOAD -->
+    <div id="sym-panel">
+      <div class="sg">
+        <div class="sgl">📊 Indices</div>
+        <div class="sym-row">
+          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty 50',this)">Nifty 50</button>
+          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Bank',this)">Bank Nifty</button>
+          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Fin Service',this)">Fin Nifty</button>
+          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Midcap 50',this)">Midcap 50</button>
+          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty IT',this)">Nifty IT</button>
+          <button class="sbtn" onclick="pickSym('BSE_INDEX|SENSEX',this)">Sensex</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">🏢 Large Cap</div>
+        <div class="sym-row">
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE002A01018',this)">Reliance</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE009A01021',this)">Infosys</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE467B01029',this)">TCS</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE040A01034',this)">HDFC Bank</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE154A01025',this)">ITC</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE075A01022',this)">Wipro</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE585B01010',this)">Maruti</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE296A01024',this)">Bajaj Fin</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">🏦 Banking</div>
+        <div class="sym-row">
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE238A01034',this)">Axis Bank</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE090A01021',this)">ICICI Bank</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE062A01020',this)">SBI</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE160A01022',this)">PNB</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE848E01016',this)">NHPC</button>
+          <button class="sbtn" onclick="pickSym('NSE_EQ|INE669E01016',this)">IRFC</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">✏️ Custom</div>
+        <div class="sym-row">
+          <input id="custom-sym" type="text" placeholder="NSE_EQ|ISIN" onkeydown="if(event.key==='Enter')loadSym()"/>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">⏱ Interval</div>
+        <div class="iv-group">
+          <button class="ivbtn"        data-iv="1"   onclick="pickIv(1)">1s</button>
+          <button class="ivbtn"        data-iv="5"   onclick="pickIv(5)">5s</button>
+          <button class="ivbtn active" data-iv="60"  onclick="pickIv(60)">1m</button>
+          <button class="ivbtn"        data-iv="300" onclick="pickIv(300)">5m</button>
+          <button class="ivbtn"        data-iv="900" onclick="pickIv(900)">15m</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">⚡ Ag Circles</div>
+        <div style="display:flex;gap:.3rem">
+          <button class="bub-btn" id="bubBtn" onclick="toggleBubbles()" style="flex:1">● ON</button>
+          <button class="bub-btn" id="xhair-btn" onclick="toggleCrosshair()" title="Toggle crosshair mode" style="flex:1">✥ Free</button>
+        </div>
+        <!-- Lot Size -->
+        <div style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem">
+          <span style="font-size:.58rem;color:var(--muted);white-space:nowrap">Lot Size</span>
+          <input type="number" id="lot-size-input" min="1" step="1" value="65"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--yellow);border-radius:4px;padding:.18rem .35rem;outline:none;-moz-appearance:textfield"
+            oninput="
+              LOT_SIZE = Math.max(1, +this.value || 1);
+              agbubMinContracts = Math.max(1, +document.getElementById('bub-min-contracts').value || 1) * LOT_SIZE;
+              AGBUB.draw();
+            "/>
+          <span style="font-size:.56rem;color:var(--muted)">contracts</span>
+        </div>
+        <!-- Max Bubble Size -->
+        <div style="display:flex;align-items:center;gap:.4rem;margin-top:.3rem">
+          <span style="font-size:.58rem;color:var(--muted);white-space:nowrap">Max Bubble</span>
+          <input type="number" id="max-bubble-input" min="5" max="300" step="1" value="20"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:.18rem .35rem;outline:none;-moz-appearance:textfield"
+            oninput="agbubMaxRadius = Math.max(5, +this.value || 20); AGBUB.draw();"/>
+          <span style="font-size:.56rem;color:var(--muted)">px</span>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sgl">📏 H-Lines</div>
+        <div style="display:flex;gap:.3rem">
+          <button class="bub-btn" id="drawline-btn" onclick="toggleDrawLine()" style="flex:1" title="Click chart to add line · Click near line to remove">✏ Draw Line</button>
+          <button class="bub-btn off" onclick="clearAllLines()" style="flex:1" title="Remove all lines">🗑 Clear All</button>
+        </div>
+      </div>
+      <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
+    </div>
+
+  </div><!-- /side-drawer -->
+
+  <!-- DRAWER TOGGLE TAB -->
+  <button id="drawer-toggle" onclick="toggleDrawer()" title="Toggle panel">‹</button>
+
+  <!-- MAIN CONTENT -->
+  <div id="main-content">
+
+    <!-- Hidden history elements (kept for JS compatibility) -->
+    <div style="display:none">
+      <select id="hist-unit">
+        <option value="1minute">1 min</option>
+        <option value="5minute" selected>5 min</option>
+        <option value="30minute">30 min</option>
+        <option value="day">Day</option>
+      </select>
+      <input type="date" id="hist-from"/>
+      <input type="date" id="hist-to"/>
+      <button id="hist-btn" onclick="loadHistory()" disabled>▶ Load History</button>
+      <span id="hist-status"></span>
+    </div>
+
+    <!-- COMPACT INFO BAR -->
+    <div id="info-bar">
+      <span id="sym-disp">—</span>
+      <div class="bar-sep"></div>
+      <div class="ti"><span class="tl">LTP</span>&nbsp;<span class="tv" id="t-ltp">—</span></div>
+      <div class="ti"><span class="tl">O</span>&nbsp;<span class="tv" id="t-o">—</span></div>
+      <div class="ti"><span class="tl">H</span>&nbsp;<span class="tv" id="t-h">—</span></div>
+      <div class="ti"><span class="tl">L</span>&nbsp;<span class="tv" id="t-l">—</span></div>
+      <div class="ti"><span class="tl">C</span>&nbsp;<span class="tv" id="t-c">—</span></div>
+      <div class="ti"><span class="tl">Vol</span>&nbsp;<span class="tv" id="t-v">—</span></div>
+      <div class="ti"><span class="tl">Δ</span>&nbsp;<span class="tv" id="t-chg">—</span></div>
+      <div class="bar-sep"></div>
+      <div class="ti"><span class="tl">Sym</span>&nbsp;<span class="tv" id="s-sym">—</span></div>
+      <div class="ti"><span class="tl">Iv</span>&nbsp;<span class="tv" id="s-iv">—</span></div>
+      <div class="ti"><span class="tl">Bars</span>&nbsp;<span class="tv" id="s-bars">0</span></div>
+      <div class="ti"><span class="tl">Bubs</span>&nbsp;<span class="tv" id="s-bubs">0</span></div>
+      <div class="ti"><span class="tl">TPS</span>&nbsp;<span class="tv" id="s-tps">—</span></div>
+      <div class="ti"><span class="tl">Last</span>&nbsp;<span class="tv" id="s-last">—</span></div>
+      <div class="bar-sep"></div>
+      <span class="bc-label">⚡Min Lots</span>
+      <input type="number" id="bub-min-contracts" class="bc-num" min="1" step="1" value="25"
+        oninput="agbubMinContracts=Math.max(1,+this.value||1)*LOT_SIZE; AGBUB.draw()"/>
+      <span class="bc-label">Scale</span>
+      <input type="range" id="agbub-scale" class="bc-range" min="1" max="300" step="1" value="3"
+        oninput="agbubScale=+this.value; document.getElementById('agbub-scale-val').textContent=this.value; AGBUB.draw()"/>
+      <span id="agbub-scale-val" class="bc-val">3</span>
+      <span class="bc-label" title="Bubble size multiplier">×</span>
+      <input type="number" id="agbub-mult" class="bc-num" min="0.1" max="5" step="0.1" value="1.0"
+        style="width:36px"
+        oninput="agbubMultiplier=Math.max(0.1,+this.value||1); AGBUB.draw()"/>
+      <span class="bc-label">🔆</span>
+      <input type="range" id="agbub-opacity" class="bc-range" min="5" max="100" step="1" value="60"
+        oninput="agbubOpacity=+this.value/100; document.getElementById('agbub-opacity-val').textContent=this.value+'%'; AGBUB.draw()"/>
+      <span id="agbub-opacity-val" class="bc-val">60%</span>
+      <span id="bub-hover-info"></span>
+    </div>
+
+    <div id="alerts"></div>
+
+    <!-- CHARTS -->
+    <div id="chart-wrap">
+      <div id="chart-con">
+        <div id="lw-chart"></div>
+        <div id="placeholder">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.18"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <p>
+            <span class="sn">1 →</span> Click <b style="color:var(--accent)">Connect</b><br/>
+            <span class="sn">2 →</span> Paste token → <b style="color:var(--accent)">Save Token</b><br/>
+            <span class="sn">3 →</span> Pick symbol + interval → <b style="color:var(--accent)">▶ Load</b><br/>
+            <span class="sn">4 →</span> Pick <b style="color:var(--accent)">Interval</b> → Circles pin to <b style="color:var(--accent)">(time, open)</b>
+          </p>
+        </div>
+        <canvas id="agbub-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<!-- Tooltip -->
+<div id="bub-tip">
+  <div class="btt" id="btt-title"></div>
+  <div id="btt-body"></div>
+</div>
+
+<!-- LightweightCharts loader -->
+<script>
+(function(){
+  const srcs=[
+    'lightweight-charts.standalone.production.js',
+    'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
+    'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
+  ];
+  let i=0;
+  function next(){
+    if(i>=srcs.length){alert('Chart library failed to load. Check internet.');return;}
+    const s=document.createElement('script');
+    s.src=srcs[i++];
+    s.onload=()=>{ if(typeof LightweightCharts==='undefined') next(); };
+    s.onerror=next;
+    document.head.appendChild(s);
+  }
+  next();
+})();
+</script>
+
+<script src="config.js"></script>
+<script src="bubbles.js"></script>
+<script src="chart.js"></script>
+<script src="ui.js"></script>
+<script src="ws.js"></script>
+<script src="init.js"></script>
+</body>
+</html>
