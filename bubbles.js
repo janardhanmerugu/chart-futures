@@ -83,6 +83,22 @@ const AGBUB = {
     } catch(_) { return null; }
   },
 
+  // Get the clipping rect to exclude price labels on the right
+  _getClipRect() {
+    if (!lwChart || !cSeries) return null;
+    try {
+      // Get the width of the time scale area (left side where time labels are)
+      const timeScaleW = lwChart.timeScale().width();
+      // Get the width of the right price scale (where price labels are drawn)
+      const rightPriceScaleW = lwChart.priceScale('right').width();
+      // Clip region: from left edge to (width - rightPriceScale width)
+      // This ensures bubbles don't draw over the price labels on the right
+      const clipWidth = this.canvas.width - rightPriceScaleW;
+      if (clipWidth <= 0) return null;
+      return { x: 0, y: 0, width: clipWidth, height: this.canvas.height };
+    } catch(_) { return null; }
+  },
+
   draw() {
     if (!this.ctx || !this.canvas) return;
     this.sync();
@@ -91,6 +107,15 @@ const AGBUB = {
     const H   = this.canvas.height;
     ctx.clearRect(0, 0, W, H);
     if (!bubOn || this.items.length === 0) return;
+
+    // Apply clipping to exclude price label area on the right
+    ctx.save();
+    const clipRect = this._getClipRect();
+    if (clipRect) {
+      ctx.beginPath();
+      ctx.rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+      ctx.clip();
+    }
 
     this.items.forEach(b => {
       if (b.contracts < agbubMinContracts) { b._x = undefined; return; }
@@ -135,6 +160,9 @@ const AGBUB = {
         ctx.restore();
       }
     });
+
+    // Restore canvas context (clipping removed, context properties restored)
+    ctx.restore();
   },
 
   _onMove(e) {
