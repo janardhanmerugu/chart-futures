@@ -143,7 +143,7 @@
         <div style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem">
           <span style="font-size:.58rem;color:var(--muted);white-space:nowrap">Lot Size</span>
           <input type="number" id="lot-size-input" min="1" step="1" value="65"
-            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--yellow);border-radius:4px;padding:.18rem .35rem;outline:none;-moz-appearance:textfield"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--yellow);border-radius:4px;padding:.18rem .35rem;outline:none;appearance:none;-moz-appearance:textfield"
             oninput="
               LOT_SIZE = Math.max(1, +this.value || 1);
               agbubMinContracts = Math.max(1, +document.getElementById('bub-min-contracts').value || 1) * LOT_SIZE;
@@ -155,7 +155,7 @@
         <div style="display:flex;align-items:center;gap:.4rem;margin-top:.3rem">
           <span style="font-size:.58rem;color:var(--muted);white-space:nowrap">Max Bubble</span>
           <input type="number" id="max-bubble-input" min="5" max="300" step="1" value="20"
-            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:.18rem .35rem;outline:none;-moz-appearance:textfield"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:.18rem .35rem;outline:none;appearance:none;-webkit-appearance:none;-moz-appearance:textfield"
             oninput="agbubMaxRadius = Math.max(5, +this.value || 20); AGBUB.draw();"/>
           <span style="font-size:.56rem;color:var(--muted)">px</span>
         </div>
