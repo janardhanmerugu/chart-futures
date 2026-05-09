@@ -160,13 +160,16 @@
           <span style="font-size:.56rem;color:var(--muted)">px</span>
         </div>
       </div>
+
+      <!-- H-LINES — keyboard shortcuts only, no buttons -->
       <div class="sg">
         <div class="sgl">📏 H-Lines</div>
-        <div style="display:flex;gap:.3rem">
-          <button class="bub-btn" id="drawline-btn" onclick="toggleDrawLine()" style="flex:1" title="Click chart to add line · Click near line to remove">✏ Draw Line</button>
-          <button class="bub-btn off" onclick="clearAllLines()" style="flex:1" title="Remove all lines">🗑 Clear All</button>
+        <div style="display:flex;flex-direction:column;gap:.25rem;font-size:.6rem;color:var(--muted);line-height:1.8">
+          <div><span style="color:var(--accent);font-weight:600">Ctrl + Left-click</span> &nbsp;add / remove line</div>
+          <div><span style="color:var(--accent);font-weight:600">Ctrl + C</span> &nbsp;clear all lines</div>
         </div>
       </div>
+
       <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
     </div>
 
@@ -241,7 +244,7 @@
             <span class="sn">1 →</span> Click <b style="color:var(--accent)">Connect</b><br/>
             <span class="sn">2 →</span> Paste token → <b style="color:var(--accent)">Save Token</b><br/>
             <span class="sn">3 →</span> Pick symbol + interval → <b style="color:var(--accent)">▶ Load</b><br/>
-            <span class="sn">4 →</span> Pick <b style="color:var(--accent)">Interval</b> → Circles pin to <b style="color:var(--accent)">(time, open)</b>
+            <span class="sn">4 →</span> <b style="color:var(--accent)">Ctrl + Left-click</b> to draw H-Lines
           </p>
         </div>
         <canvas id="agbub-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;"></canvas>

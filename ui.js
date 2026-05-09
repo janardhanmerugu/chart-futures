@@ -23,17 +23,7 @@ function toggleCrosshair() {
 }
 
 // ──── Horizontal Lines ────
-let drawLineMode = false;
 let hLines = [];
-
-function toggleDrawLine() {
-  drawLineMode = !drawLineMode;
-  const btn = document.getElementById('drawline-btn');
-  btn.textContent       = drawLineMode ? '✖ Exit Draw' : '✏ Draw Line';
-  btn.style.borderColor = drawLineMode ? 'var(--warn)'  : '';
-  btn.style.color       = drawLineMode ? 'var(--warn)'  : '';
-  document.getElementById('lw-chart').style.cursor = drawLineMode ? 'crosshair' : '';
-}
 
 function addHLine(price) {
   if (!cSeries) return;
@@ -55,8 +45,7 @@ function removeNearestHLine(clientY, rect) {
   hLines.forEach((h, i) => {
     const lineY = cSeries.priceToCoordinate(h.price);
     if (lineY == null) return;
-    const screenY = lineY;
-    const diff = Math.abs((clientY - rect.top) - screenY);
+    const diff = Math.abs((clientY - rect.top) - lineY);
     if (diff <= SNAP_PX && diff < minDiff) { minDiff = diff; closest = h; idx = i; }
   });
   if (closest) {
