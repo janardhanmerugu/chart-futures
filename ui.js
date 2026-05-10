@@ -122,19 +122,6 @@ function initHistoryDates() {
   document.getElementById('hist-to').max     = todayStr;
 }
 
-function loadHistory() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) { showAlert('err','⚠ Connect first.'); return; }
-  if (!selSym) { showAlert('warn','⚠ Pick a symbol first (Nifty Fut / BankNifty Fut above).'); return; }
-  const unit     = document.getElementById('hist-unit').value;
-  const fromDate = document.getElementById('hist-from').value;
-  const toDate   = document.getElementById('hist-to').value;
-  if (!fromDate || !toDate) { showAlert('warn','⚠ Set from/to dates.'); return; }
-
-  document.getElementById('hist-status').textContent = '⏳ Loading…';
-  document.getElementById('hist-btn').disabled = true;
-  ws.send(JSON.stringify({ type:'get_history', symbol:selSym, unit, from_date:fromDate, to_date:toDate }));
-}
-
 function renderHistory(candles, symbol, unit) {
   if (!candles || candles.length === 0) {
     showAlert('warn','⚠ No candles returned. Market may have been closed or date range invalid.', false);

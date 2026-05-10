@@ -4,7 +4,6 @@
 
 window.addEventListener('DOMContentLoaded', () => {
   // Initialize history dates
-  initHistoryDates();
 
   // ── Restore token from sessionStorage (survives refresh, clears on tab close) ──
   const savedToken = sessionStorage.getItem('upstox_token');
