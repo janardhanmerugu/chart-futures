@@ -81,6 +81,7 @@ function saveToken() {
 function clearToken() {
   document.getElementById('token-input').value='';
   document.getElementById('token-input').className='';
+  sessionStorage.removeItem('upstox_token');   // ← clear saved token
   tokSaved=false; setTok(null,'Token cleared.');
   document.getElementById('loadBtn').disabled=true;
   document.getElementById('clearTokenBtn').disabled=true;
@@ -89,8 +90,17 @@ function clearToken() {
 function setTok(ok, msg) {
   const dot=document.getElementById('tok-dot'), txt=document.getElementById('tok-msg'), inp=document.getElementById('token-input');
   txt.textContent=msg;
-  if(ok===true) { dot.className='ok'; inp.className='tok-ok'; tokSaved=true; document.getElementById('loadBtn').disabled=false; document.getElementById('clearTokenBtn').disabled=false; }
-  else if(ok===false) { dot.className='fail'; inp.className='tok-fail'; tokSaved=false; document.getElementById('loadBtn').disabled=true; }
+  if(ok===true) {
+    dot.className='ok'; inp.className='tok-ok'; tokSaved=true;
+    sessionStorage.setItem('upstox_token', inp.value.trim());   // ← save on success
+    document.getElementById('loadBtn').disabled=false;
+    document.getElementById('clearTokenBtn').disabled=false;
+  }
+  else if(ok===false) {
+    dot.className='fail'; inp.className='tok-fail'; tokSaved=false;
+    sessionStorage.removeItem('upstox_token');   // ← remove bad token
+    document.getElementById('loadBtn').disabled=true;
+  }
   else { dot.className=''; inp.className=''; }
 }
 
