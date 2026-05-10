@@ -104,51 +104,6 @@ function setTok(ok, msg) {
   else { dot.className=''; inp.className=''; }
 }
 
-// ──── History ────
-function initHistoryDates() {
-  const today = new Date();
-  const yyyy  = today.getFullYear();
-  const mm    = String(today.getMonth()+1).padStart(2,'0');
-  const dd    = String(today.getDate()).padStart(2,'0');
-  const todayStr = `${yyyy}-${mm}-${dd}`;
-
-  const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-7);
-  const wy = weekAgo.getFullYear(), wm = String(weekAgo.getMonth()+1).padStart(2,'0'), wd = String(weekAgo.getDate()).padStart(2,'0');
-  const fromStr = `${wy}-${wm}-${wd}`;
-
-  document.getElementById('hist-from').value = fromStr;
-  document.getElementById('hist-to').value   = todayStr;
-  document.getElementById('hist-from').max   = todayStr;
-  document.getElementById('hist-to').max     = todayStr;
-}
-
-function renderHistory(candles, symbol, unit) {
-  if (!candles || candles.length === 0) {
-    showAlert('warn','⚠ No candles returned. Market may have been closed or date range invalid.', false);
-    document.getElementById('hist-status').textContent = '0 candles';
-    document.getElementById('hist-btn').disabled = false;
-    return;
-  }
-  if (!lwChart && !initCharts()) return;
-
-  cData=[]; vData=[]; cMap={};
-  AGBUB.clear();
-  candles.forEach(c => upsertCandle(c, true));
-
-  setTimeout(() => {
-    lwChart.timeScale().fitContent();
-    requestAnimationFrame(() => AGBUB.draw());
-  }, 100);
-
-  updateTicker(candles[candles.length-1], symbol);
-  document.getElementById('s-sym').textContent = symbol;
-  document.getElementById('s-iv').textContent  = unit;
-  document.getElementById('sym-disp').textContent = symbol;
-  document.getElementById('hist-status').textContent = `✅ ${candles.length} candles`;
-  document.getElementById('hist-btn').disabled = false;
-  showAlert('ok', `✅ Loaded ${candles.length} ${unit} candles for ${symbol}`);
-}
-
 // ──── Futures ────
 const futKeys = { nf: null, bnf: null };
 

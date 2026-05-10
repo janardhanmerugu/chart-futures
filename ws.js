@@ -110,19 +110,6 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
     }
-    else if (t === 'history_loading') {
-      clearAlerts();
-      if (!initCharts()) return;
-      AGBUB.clear();
-      document.getElementById('hist-status').textContent = '⏳ Fetching…';
-      showAlert('info', `🔄 Loading history: ${msg.symbol} @ ${msg.unit}…`);
-    }
-    else if (t === 'history_data')  { renderHistory(msg.candles, msg.symbol, msg.unit); }
-    else if (t === 'history_error') {
-      document.getElementById('hist-status').textContent = '⚠ Error';
-      document.getElementById('hist-btn').disabled = false;
-      showAlert('err', '⚠ ' + msg.message, false);
-    }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }
