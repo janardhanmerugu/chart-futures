@@ -64,19 +64,25 @@
       </div>
     </div>
 
-    <!-- LOAD FILE -->
+    <!-- LOAD FROM SERVER DB -->
     <div class="drawer-section">
-      <div class="drawer-section-title">📁 Load File</div>
-      <div style="display:flex;flex-direction:column;gap:.3rem">
-        <label style="font-size:.67rem;color:var(--accent);cursor:pointer;border:1px solid var(--accent);border-radius:5px;padding:.25rem .7rem;background:#00d4ff11;text-align:center" title="Pick a candles.csv saved by this app">
-          Choose candles.csv
-          <input type="file" id="local-file-input" accept=".csv" style="display:none" onchange="loadLocalCSV(this)"/>
-        </label>
-        <label style="font-size:.67rem;color:#ffe033;cursor:pointer;border:1px solid #ffe03388;border-radius:5px;padding:.25rem .7rem;background:#ffe03311;text-align:center" title="Pick a ticks.csv saved by this app">
-          Choose ticks.csv
-          <input type="file" id="local-ticks-input" accept=".csv" style="display:none" onchange="loadLocalTicks(this)"/>
-        </label>
-        <span id="local-file-status" style="font-size:.62rem;color:var(--muted)"></span>
+      <div class="drawer-section-title">🗄️ Load from Server DB</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem">
+        <!-- Date filter + refresh -->
+        <div style="display:flex;gap:.3rem;align-items:center">
+          <input type="date" id="db-date-filter" class="hist-date" style="flex:1;min-width:0"
+            title="Filter by date (leave blank for all)"/>
+          <button class="hbtn primary" style="padding:.22rem .55rem;font-size:.65rem"
+            onclick="dbListSaved()" title="Fetch available datasets from server">↺ List</button>
+        </div>
+        <span id="db-list-status" style="font-size:.6rem;color:var(--muted)">Connect + click ↺ List</span>
+        <!-- Scrollable dataset list -->
+        <div id="db-dataset-list" style="
+          display:flex;flex-direction:column;gap:.25rem;
+          max-height:220px;overflow-y:auto;
+          border:1px solid var(--border);border-radius:6px;
+          padding:.3rem .35rem;background:#080d16;
+        "></div>
       </div>
     </div>
 

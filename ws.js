@@ -41,7 +41,6 @@ function connectWS() {
     if (t === 'auth_ok') {
       setTok(true,'✅ Token accepted!'); setStatus('live','● READY');
       showAlert('ok','✅ Token saved! Pick symbol and click ▶ Load');
-      document.getElementById('hist-btn').disabled = false;
     }
     else if (t === 'auth_fail') { setTok(false,'❌ '+msg.message); showAlert('err','⚠ '+msg.message,false); }
     else if (t === 'init') {
@@ -110,6 +109,8 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
     }
+    else if (t === 'saved_list') { renderSavedList(msg.datasets); }
+    else if (t === 'csv_data')  { applySQLiteData(msg); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

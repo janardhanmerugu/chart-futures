@@ -208,6 +208,86 @@ function updateTicker(c, sym) {
   const ratEl = document.getElementById('t-rat'); if(c.volume>0 && ratEl) ratEl.textContent=(Math.abs(chg)*1000/c.volume).toFixed(4)+'×10⁻³';
 }
 
+// ──── SQLite / Server DB Loader ────
+
+let _savedDatasets = [];   // cache of last saved_list response
+
+function dbListSaved() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showAlert('err', '⚠ Connect to server first.'); return;
+  }
+  const dateVal = document.getElementById('db-date-filter').value.trim();
+  document.getElementById('db-list-status').textContent = '⏳ loading…';
+  document.getElementById('db-dataset-list').innerHTML  = '';
+  ws.send(JSON.stringify({ type: 'list_saved', date: dateVal }));
+}
+
+function renderSavedList(datasets) {
+  _savedDatasets = datasets || [];
+  const el  = document.getElementById('db-dataset-list');
+  const st  = document.getElementById('db-list-status');
+  el.innerHTML = '';
+  if (!_savedDatasets.length) {
+    st.textContent = 'No data found.'; return;
+  }
+  st.textContent = `${_savedDatasets.length} dataset(s) found`;
+  _savedDatasets.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'db-row';
+    row.innerHTML =
+      `<span class="db-row-info"><b>${d.instrument}</b></span>` +
+      `<span class="db-row-btns">` +
+        (d.has_candles ? `<button class="db-load-btn" onclick="dbLoad(${i},'candles')">Candles</button>` : '') +
+        (d.has_ticks   ? `<button class="db-load-btn tick" onclick="dbLoad(${i},'ticks')">Ticks</button>` : '') +
+        (d.has_candles && d.has_ticks ? `<button class="db-load-btn both" onclick="dbLoad(${i},'both')">Both</button>` : '') +
+      `</span>`;
+    el.appendChild(row);
+  });
+}
+
+function dbLoad(idx, what) {
+  const d = _savedDatasets[idx];
+  if (!d || !ws || ws.readyState !== WebSocket.OPEN) return;
+  document.getElementById('db-list-status').textContent = `⏳ loading ${what}…`;
+  ws.send(JSON.stringify({
+    type:       'load_csv',
+    date:       d.date,
+    instrument: d.instrument,
+    load:       what,
+    filename:   'candles.csv',
+  }));
+}
+
+function applySQLiteData(msg) {
+  const st = document.getElementById('db-list-status');
+  const candles = msg.candles || [];
+  const ticks   = msg.ticks   || [];
+  const label   = msg.label   || msg.instrument || '?';
+
+  if (candles.length > 0) {
+    clearAlerts();
+    _applyCSVCandles(candles, label);
+    showAlert('ok', `✅ Loaded ${candles.length} candles — ${label}`);
+  }
+  if (ticks.length > 0) {
+    let pushed = 0;
+    if (candles.length === 0) AGBUB.clear();   // only reset bubbles if no candles loaded
+    ticks.forEach(r => {
+      if (r.ltp != null && r.ltt_ms > 0) {
+        AGBUB.push(+r.ltp, r.best_ask ?? null, r.best_bid ?? null, +r.vtt, +r.ltt_ms);
+        pushed++;
+      }
+    });
+    setTimeout(() => requestAnimationFrame(() => AGBUB.draw()), 100);
+    if (candles.length === 0) showAlert('ok', `✅ Replayed ${pushed} ticks → ${AGBUB.items.length} bubbles — ${label}`);
+    else showAlert('ok', `✅ ${candles.length} candles + ${AGBUB.items.length} bubbles — ${label}`);
+  }
+  if (!candles.length && !ticks.length) showAlert('warn', `⚠ No data found for ${label}`);
+  st.textContent = candles.length || ticks.length
+    ? `✅ ${candles.length} candles, ${ticks.length} ticks`
+    : '⚠ empty';
+}
+
 // ──── Drawer Toggle ────
 function toggleDrawer(){
   const drawer = document.getElementById('side-drawer');
