@@ -252,7 +252,7 @@ function dbLoad(idx, what) {
   ws.send(JSON.stringify({
     type:       'load_csv',
     date:       d.date,
-    instrument: d.instrument,
+    instrument: d.instrument_key || d.instrument,
     load:       what,
     filename:   'candles.csv',
   }));
