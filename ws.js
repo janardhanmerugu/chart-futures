@@ -109,8 +109,8 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
     }
-    else if (t === 'saved_list') { renderSavedList(msg.datasets); }
-    else if (t === 'csv_data')  { applySQLiteData(msg); }
+    else if (t === 'sqlite_list') { renderSavedList(msg.datasets); }
+    else if (t === 'sqlite_data') { applySQLiteData(msg); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

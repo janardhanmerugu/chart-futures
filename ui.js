@@ -81,7 +81,7 @@ function saveToken() {
 function clearToken() {
   document.getElementById('token-input').value='';
   document.getElementById('token-input').className='';
-  sessionStorage.removeItem('upstox_token');   // ← clear saved token
+  sessionStorage.removeItem('upstox_token');
   tokSaved=false; setTok(null,'Token cleared.');
   document.getElementById('loadBtn').disabled=true;
   document.getElementById('clearTokenBtn').disabled=true;
@@ -92,13 +92,13 @@ function setTok(ok, msg) {
   txt.textContent=msg;
   if(ok===true) {
     dot.className='ok'; inp.className='tok-ok'; tokSaved=true;
-    sessionStorage.setItem('upstox_token', inp.value.trim());   // ← save on success
+    sessionStorage.setItem('upstox_token', inp.value.trim());
     document.getElementById('loadBtn').disabled=false;
     document.getElementById('clearTokenBtn').disabled=false;
   }
   else if(ok===false) {
     dot.className='fail'; inp.className='tok-fail'; tokSaved=false;
-    sessionStorage.removeItem('upstox_token');   // ← remove bad token
+    sessionStorage.removeItem('upstox_token');
     document.getElementById('loadBtn').disabled=true;
   }
   else { dot.className=''; inp.className=''; }
@@ -205,12 +205,11 @@ function updateTicker(c, sym) {
   const chg=c.close-c.open, pct=((chg/c.open)*100).toFixed(2);
   const el=document.getElementById('t-chg');
   el.textContent=`${chg>=0?'+':''}${fN(chg)} (${pct}%)`; el.className='tv '+(chg>=0?'up':'dn');
-  const ratEl = document.getElementById('t-rat'); if(c.volume>0 && ratEl) ratEl.textContent=(Math.abs(chg)*1000/c.volume).toFixed(4)+'×10⁻³';
 }
 
-// ──── SQLite / Server DB Loader ────
+// ──── SQLite DB Loader ────
 
-let _savedDatasets = [];   // cache of last saved_list response
+let _savedDatasets = [];   // cache of last sqlite_list response
 
 function dbListSaved() {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -250,11 +249,10 @@ function dbLoad(idx, what) {
   if (!d || !ws || ws.readyState !== WebSocket.OPEN) return;
   document.getElementById('db-list-status').textContent = `⏳ loading ${what}…`;
   ws.send(JSON.stringify({
-    type:       'load_csv',
+    type:       'load_sqlite',
     date:       d.date,
     instrument: d.instrument_key || d.instrument,
     load:       what,
-    filename:   'candles.csv',
   }));
 }
 
@@ -266,7 +264,7 @@ function applySQLiteData(msg) {
 
   if (candles.length > 0) {
     clearAlerts();
-    _applyCSVCandles(candles, label);
+    _applyCandles(candles, label);
     showAlert('ok', `✅ Loaded ${candles.length} candles — ${label}`);
   }
   if (ticks.length > 0) {
