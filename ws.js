@@ -109,8 +109,22 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
     }
-    else if (t === 'sqlite_list') { renderSavedList(msg.datasets); }
+    else if (t === 'sqlite_list') {
+      if (msg.source === 'replay') {
+        rpPopulateDropdown(msg.datasets); // replay list button → replay dropdown only
+      } else {
+        renderSavedList(msg.datasets);    // db list button → db panel only
+      }
+    }
     else if (t === 'sqlite_data') { applySQLiteData(msg); }
+    // ── Replay messages ───────────────────────────────────────────────────────
+    else if (t === 'replay_ready')    { rpOnReplayReady(); }
+    else if (t === 'replay_meta')     { rpOnMeta(msg); }
+    else if (t === 'replay_progress') { rpOnProgress(msg); }
+    else if (t === 'replay_done')     { rpOnDone(msg); }
+    else if (t === 'replay_paused')   { rpSetStatus('paused'); }
+    else if (t === 'replay_resumed')  { rpSetStatus('playing'); }
+    else if (t === 'replay_stopped')  { rpOnStopped(); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

@@ -218,7 +218,7 @@ function dbListSaved() {
   const dateVal = document.getElementById('db-date-filter').value.trim();
   document.getElementById('db-list-status').textContent = '⏳ loading…';
   document.getElementById('db-dataset-list').innerHTML  = '';
-  ws.send(JSON.stringify({ type: 'list_saved', date: dateVal }));
+  ws.send(JSON.stringify({ type: 'list_saved', date: dateVal, source: 'db' }));
 }
 
 function renderSavedList(datasets) {

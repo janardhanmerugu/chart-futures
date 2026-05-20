@@ -248,6 +248,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .db-load-btn.both{border-color:var(--green);background:#00e67611;color:var(--green)}
 .db-load-btn.both:hover{background:#00e67633}
 
+@keyframes rp-blink{0%,100%{opacity:1}50%{opacity:.15}}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}

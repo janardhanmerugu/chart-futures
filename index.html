@@ -86,6 +86,70 @@
       </div>
     </div>
 
+    <!-- 🎬 TICK REPLAY -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">🎬 Tick Replay</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem">
+
+        <!-- Date + List -->
+        <div style="display:flex;gap:.3rem;align-items:center">
+          <input type="date" id="rp-date" class="hist-date" style="flex:1;min-width:0"
+            title="Date to replay"/>
+          <button class="hbtn primary" style="padding:.22rem .55rem;font-size:.65rem"
+            onclick="rpListSaved()">↺ List</button>
+        </div>
+
+        <!-- Instrument dropdown — only shows instruments with tick data -->
+        <select id="rp-instrument" style="width:100%;background:#0f2035;border:1px solid #1e4060;color:#7ec8e3;font-family:'JetBrains Mono',monospace;font-size:.65rem;padding:.28rem .4rem;border-radius:5px;outline:none;appearance:none">
+          <option value="">— pick instrument —</option>
+        </select>
+
+        <!-- Speed -->
+        <div class="sgl">Speed</div>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <input type="range" id="rp-speed" min="0.1" max="50" step="0.1" value="1"
+            style="flex:1;accent-color:var(--accent);cursor:pointer"
+            oninput="document.getElementById('rp-speed-val').textContent=(+this.value%1===0?+this.value:(+this.value).toFixed(1))+'×'"/>
+          <span id="rp-speed-val" style="font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;color:var(--accent);min-width:32px;text-align:right">1×</span>
+        </div>
+        <div style="display:flex;gap:.2rem">
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(0.5)">0.5×</button>
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(1)">1×</button>
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(2)">2×</button>
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(5)">5×</button>
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(10)">10×</button>
+          <button class="ivbtn" style="flex:1;font-size:.55rem" onclick="rpSetSpeed(50)">50×</button>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;gap:.25rem;margin-top:.1rem">
+          <button class="hbtn primary" id="rp-start-btn"  onclick="rpStart()"  style="flex:1" disabled>▶ Start</button>
+          <button class="hbtn ghost"   id="rp-pause-btn"  onclick="rpPause()"  style="flex:1" disabled>⏸</button>
+          <button class="hbtn ghost"   id="rp-resume-btn" onclick="rpResume()" style="flex:1" disabled>▶</button>
+          <button class="hbtn danger"  id="rp-stop-btn"   onclick="rpStop()"   style="flex:1" disabled>■</button>
+        </div>
+
+        <!-- Progress -->
+        <div style="margin-top:.15rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.2rem">
+            <span id="rp-prog-label" style="font-size:.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace">No replay active</span>
+            <span id="rp-prog-pct"   style="font-size:.65rem;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace">—</span>
+          </div>
+          <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div id="rp-prog-fill" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .3s ease"></div>
+          </div>
+          <div id="rp-prog-time" style="font-size:.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:.2rem">—</div>
+        </div>
+
+        <!-- Status pill -->
+        <div id="rp-status-pill" style="display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .5rem;border-radius:10px;border:1px solid var(--border);font-size:.58rem;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted);width:fit-content;transition:all .2s">
+          <span id="rp-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>
+          <span id="rp-status-txt">IDLE</span>
+        </div>
+
+      </div>
+    </div>
+
     <!-- SYMBOLS + INTERVAL + LOAD -->
     <div id="sym-panel">
       <div class="sg">
@@ -255,32 +319,13 @@
   <div id="btt-body"></div>
 </div>
 
-<!-- LightweightCharts loader -->
-<script>
-(function(){
-  const srcs=[
-    'lightweight-charts.standalone.production.js',
-    'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
-    'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
-  ];
-  let i=0;
-  function next(){
-    if(i>=srcs.length){alert('Chart library failed to load. Check internet.');return;}
-    const s=document.createElement('script');
-    s.src=srcs[i++];
-    s.onload=()=>{ if(typeof LightweightCharts==='undefined') next(); };
-    s.onerror=next;
-    document.head.appendChild(s);
-  }
-  next();
-})();
-</script>
-
+<script src="lightweight-loader.js"></script>
 <script src="config.js"></script>
 <script src="bubbles.js"></script>
 <script src="chart.js"></script>
 <script src="ui.js"></script>
 <script src="ws.js"></script>
+<script src="replay.js"></script>
 <script src="init.js"></script>
 </body>
 </html>
