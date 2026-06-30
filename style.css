@@ -156,11 +156,26 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
   font-size:.62rem;
 }
 #sym-disp{font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;color:var(--accent);white-space:nowrap}
-.ti{display:flex;align-items:center;gap:.22rem;white-space:nowrap}
-.tl{color:var(--muted);font-size:.58rem}
-.tv{font-weight:600}
+
+/* Each label+value pair gets a fixed min-width as a UNIT — label stays tight to number */
+.ti{display:flex;align-items:center;gap:.18rem;white-space:nowrap;flex-shrink:0}
+.tl{color:var(--muted);font-size:.58rem;flex-shrink:0}
+
+/* All numeric values use tabular-nums so digit widths never shift */
+.tv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .up{color:var(--green)}.dn{color:var(--red)}
-#live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem}
+
+/* Reserve stable width per .ti pair (label included) so neighbours never shift */
+.ti:has(#t-ltp) { min-width:100px }   /* LTP 23,815.00 */
+.ti:has(#t-o)   { min-width:84px  }   /* O 23,815.00   */
+.ti:has(#t-h)   { min-width:84px  }   /* H 23,815.00   */
+.ti:has(#t-l)   { min-width:84px  }   /* L 23,815.00   */
+.ti:has(#t-c)   { min-width:84px  }   /* C 23,815.00   */
+.ti:has(#t-v)   { min-width:70px  }   /* Vol 65        */
+/* Delta: needs room for sign + double-digit % e.g. "+1,234.50 (99.99%)" */
+.ti:has(#t-chg) { min-width:168px }
+
+#live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums}
 .bar-sep{width:1px;height:14px;background:var(--border);flex-shrink:0}
 /* bubble controls inside info bar */
 .bc-label{color:var(--yellow);font-size:.58rem;white-space:nowrap}

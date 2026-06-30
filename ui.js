@@ -137,6 +137,7 @@ function pickFut(pfx) {
   document.getElementById('fbtn-' + pfx).classList.add('active');
   document.getElementById('custom-sym').value = '';
   selSym = key;
+  applyLotSizeForSelection(pfx);
 }
 
 function renderFutures(data) {
@@ -167,7 +168,29 @@ function onFuturesError(msg) {
 }
 
 // ──── Symbol / Interval ────
-function pickSym(k,btn) { selSym=k; document.getElementById('custom-sym').value=''; document.querySelectorAll('.sbtn,.fbtn').forEach(b=>b.classList.remove('active')); if(btn)btn.classList.add('active'); }
+function applyLotSizeForSelection(value) {
+  const v = String(value || '').toLowerCase();
+  if (v.includes('bank') || v.includes('bnf')) {
+    LOT_SIZE = 30;
+  } else if (v.includes('nifty') || v.includes('nf')) {
+    LOT_SIZE = 65;
+  }
+
+  const input = document.getElementById('lot-size-input');
+  if (input) input.value = LOT_SIZE;
+
+  agbubMinContracts = Math.max(1, +document.getElementById('bub-min-contracts').value || 1) * LOT_SIZE;
+  if (typeof AGBUB?.draw === 'function') AGBUB.draw();
+}
+
+function pickSym(k,btn) {
+  selSym = k;
+  document.getElementById('custom-sym').value = '';
+  document.querySelectorAll('.sbtn,.fbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applyLotSizeForSelection(k);
+}
+
 function pickIv(v) { selIv=v; document.querySelectorAll('.ivbtn').forEach(b=>b.classList.toggle('active',+b.dataset.iv===v)); }
 function loadSym() {
   const c=document.getElementById('custom-sym').value.trim();
@@ -177,6 +200,7 @@ function loadSym() {
   if(!ws||ws.readyState!==WebSocket.OPEN){showAlert('err','⚠ Not connected. Click Connect.');return;}
   clearAlerts();
   aggBucket = null;
+  applyLotSizeForSelection(selSym);
   const backendIv = (selIv === 60 || selIv === 300 || selIv === 900) ? 1 : selIv;
   ws.send(JSON.stringify({type:'subscribe', symbol:selSym, interval:backendIv, display_interval:selIv}));
 }
