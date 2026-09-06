@@ -7,7 +7,7 @@ const CONFIG = {
   MAX_BUBBLES: 1500,
   MIN_BUBBLE_RADIUS: 3,
   DEBOUNCE_MS: 50,
-  WEBSOCKET_URL: 'ws://localhost:8765',
+  WEBSOCKET_URL: 'ws://127.0.0.1:8765',
   TPS_INTERVAL_MS: 1000,
 };
 
