@@ -138,7 +138,7 @@ function connectWS() {
 
   ws.onerror = () => {
     setStatus('err','ERROR');
-    showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Double-click START_SERVER.bat first, then retry.`,false);
+    showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Check the server, cloud URL, and network access, then retry.`,false);
   };
   
   ws.onclose = () => {
