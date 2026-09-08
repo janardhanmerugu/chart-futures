@@ -10,7 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (savedToken) {
     const inp = document.getElementById('token-input');
     inp.value = savedToken;
-    document.getElementById('tok-msg').textContent = 'Token restored — click Connect then Save Token';
+    document.getElementById('tok-msg').textContent = 'Token restored — save when connected';
   }
 
   // Ctrl + Left-click → add / remove nearest horizontal line

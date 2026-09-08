@@ -17,6 +17,7 @@ const CONFIG = {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     return `${protocol}://${hostname}:8765`;
   })(),
+  WS_RETRY_MS: 5000,
   TPS_INTERVAL_MS: 1000,
 };
 

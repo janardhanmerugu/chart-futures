@@ -2,9 +2,20 @@
 // WEBSOCKET CONNECTION & MESSAGE HANDLING
 // ─────────────────────────────────────────────────────────────────────────────
 
+let wsRetryTmr = null;
+let wsAutoReconnect = true;
+
 function connectWS() {
   clearAlerts();
-  if(ws) ws.close();
+  wsAutoReconnect = true;
+  if (wsRetryTmr) {
+    clearTimeout(wsRetryTmr);
+    wsRetryTmr = null;
+  }
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+    return;
+  }
+  if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
   
   try {
@@ -155,6 +166,12 @@ function connectWS() {
       const tpsEl = document.getElementById('s-tps'); if (tpsEl) tpsEl.textContent = '—';
       tokSaved=false; setTok(null,'Disconnected.');
       ws = null;
+      if (wsAutoReconnect && !wsRetryTmr) {
+        wsRetryTmr = setTimeout(() => {
+          wsRetryTmr = null;
+          connectWS();
+        }, CONFIG.WS_RETRY_MS);
+      }
     } catch(e) {
       console.error('Disconnect handler error:', e);
     }
@@ -162,5 +179,10 @@ function connectWS() {
 }
 
 function disconnectWS(){
+  wsAutoReconnect = false;
+  if (wsRetryTmr) {
+    clearTimeout(wsRetryTmr);
+    wsRetryTmr = null;
+  }
   if(ws){ws.close();ws=null;}
 }
