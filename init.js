@@ -31,4 +31,6 @@ window.addEventListener('DOMContentLoaded', () => {
       clearAllLines();
     }
   });
+
+  connectWS();
 });

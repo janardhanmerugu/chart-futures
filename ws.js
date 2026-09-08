@@ -15,7 +15,9 @@ function connectWS() {
     return;
   }
 
-  ws.onopen = () => {
+  const socket = ws;
+
+  socket.onopen = () => {
     safeCall(() => {
       setStatus('authed','● CONNECTED');
       document.getElementById('connectBtn').disabled    = true;
@@ -32,7 +34,7 @@ function connectWS() {
     });
   };
 
-  ws.onmessage = e => {
+  socket.onmessage = e => {
     try {
       let msg; try{msg=JSON.parse(e.data);}catch(_){return;}
       tickCnt++;
@@ -136,12 +138,13 @@ function connectWS() {
     }
   };
 
-  ws.onerror = () => {
+  socket.onerror = () => {
     setStatus('err','ERROR');
     showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Check the server, cloud URL, and network access, then retry.`,false);
   };
   
-  ws.onclose = () => {
+  socket.onclose = () => {
+    if (ws !== socket) return;
     try {
       setStatus('idle','DISCONNECTED');
       document.getElementById('connectBtn').disabled    = false;
@@ -151,6 +154,7 @@ function connectWS() {
       if(tpsTmr){clearInterval(tpsTmr);tpsTmr=null;}
       const tpsEl = document.getElementById('s-tps'); if (tpsEl) tpsEl.textContent = '—';
       tokSaved=false; setTok(null,'Disconnected.');
+      ws = null;
     } catch(e) {
       console.error('Disconnect handler error:', e);
     }
