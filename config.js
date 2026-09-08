@@ -7,7 +7,17 @@ const CONFIG = {
   MAX_BUBBLES: 1500,
   MIN_BUBBLE_RADIUS: 3,
   DEBOUNCE_MS: 50,
-  WEBSOCKET_URL: 'ws://localhost:8765',
+  WEBSOCKET_URL: (() => {
+    const override = new URLSearchParams(window.location.search).get('ws');
+    if (override) return override;
+    if (window.location.hostname.endsWith('vercel.app')) {
+      return 'wss://regulation-tones-shadow-stated.trycloudflare.com';
+    }
+    const hostname = window.location.hostname || 'localhost';
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${protocol}://${hostname}:8765`;
+  })(),
+  WS_RETRY_MS: 5000,
   TPS_INTERVAL_MS: 1000,
 };
 

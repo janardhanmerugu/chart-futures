@@ -156,11 +156,26 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
   font-size:.62rem;
 }
 #sym-disp{font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;color:var(--accent);white-space:nowrap}
-.ti{display:flex;align-items:center;gap:.22rem;white-space:nowrap}
-.tl{color:var(--muted);font-size:.58rem}
-.tv{font-weight:600}
+
+/* Each label+value pair gets a fixed min-width as a UNIT — label stays tight to number */
+.ti{display:flex;align-items:center;gap:.18rem;white-space:nowrap;flex-shrink:0}
+.tl{color:var(--muted);font-size:.58rem;flex-shrink:0}
+
+/* All numeric values use tabular-nums so digit widths never shift */
+.tv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .up{color:var(--green)}.dn{color:var(--red)}
-#live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem}
+
+/* Reserve stable width per .ti pair (label included) so neighbours never shift */
+.ti:has(#t-ltp) { min-width:100px }   /* LTP 23,815.00 */
+.ti:has(#t-o)   { min-width:84px  }   /* O 23,815.00   */
+.ti:has(#t-h)   { min-width:84px  }   /* H 23,815.00   */
+.ti:has(#t-l)   { min-width:84px  }   /* L 23,815.00   */
+.ti:has(#t-c)   { min-width:84px  }   /* C 23,815.00   */
+.ti:has(#t-v)   { min-width:70px  }   /* Vol 65        */
+/* Delta: needs room for sign + double-digit % e.g. "+1,234.50 (99.99%)" */
+.ti:has(#t-chg) { min-width:168px }
+
+#live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums}
 .bar-sep{width:1px;height:14px;background:var(--border);flex-shrink:0}
 /* bubble controls inside info bar */
 .bc-label{color:var(--yellow);font-size:.58rem;white-space:nowrap}
@@ -230,6 +245,25 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 }
 #placeholder p{font-size:.76rem;line-height:1.9;max-width:460px}
 .sn{color:var(--accent);font-weight:700}
+
+/* ── DB Loader rows ── */
+.db-row{display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.28rem .2rem;border-bottom:1px solid #1a2535;font-size:.6rem}
+.db-row:last-child{border-bottom:none}
+.db-row-info{display:flex;align-items:center;gap:.3rem;flex:1;min-width:0;overflow:hidden}
+.db-row-info b{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;display:block}
+.db-row-date{color:var(--muted);font-size:.56rem;white-space:nowrap}
+.db-tag{font-size:.52rem;font-weight:700;border-radius:3px;padding:.05rem .28rem;flex-shrink:0}
+.db-tag.candle{background:#00d4ff22;color:var(--accent);border:1px solid var(--accent)}
+.db-tag.tick{background:#ffe03322;color:var(--yellow);border:1px solid var(--yellow)}
+.db-row-btns{display:flex;gap:.25rem;flex-shrink:0}
+.db-load-btn{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:.15rem .4rem;border-radius:4px;cursor:pointer;border:1px solid var(--accent);background:#00d4ff11;color:var(--accent);white-space:nowrap;transition:all .12s}
+.db-load-btn:hover{background:#00d4ff33}
+.db-load-btn.tick{border-color:var(--yellow);background:#ffe03311;color:var(--yellow)}
+.db-load-btn.tick:hover{background:#ffe03333}
+.db-load-btn.both{border-color:var(--green);background:#00e67611;color:var(--green)}
+.db-load-btn.both:hover{background:#00e67633}
+
+@keyframes rp-blink{0%,100%{opacity:1}50%{opacity:.15}}
 
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}

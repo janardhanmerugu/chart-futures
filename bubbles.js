@@ -65,8 +65,8 @@ const AGBUB = {
   },
 
   _radius(lots) {
-    // Radius = lots × scale ÷ 10 × multiplier, clamped to [MIN_R, agbubMaxRadius]
-    return Math.min(Math.max(lots * agbubScale / 10 * agbubMultiplier, this.MIN_R), agbubMaxRadius);
+    // Radius = sqrt(lots) × scale × multiplier, clamped to [MIN_R, agbubMaxRadius]
+    return Math.min(Math.max(Math.sqrt(lots) * agbubScale * agbubMultiplier, this.MIN_R), agbubMaxRadius);
   },
 
   toXY(timeSec, price) {

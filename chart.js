@@ -141,7 +141,7 @@ function upsertCandle(c, bulk) {
   if(cMap[t] !== undefined) { cData[cMap[t]]=cd; vData[cMap[t]]=vd; }
   else { cMap[t]=cData.length; cData.push(cd); vData.push(vd); }
   if (bulk) {
-    // Full rebuild — used by init/history. setData resets viewport (intentional).
+    // Full rebuild — used by SQLite load. setData resets viewport (intentional).
     cSeries.setData(cData);
     vSeries.setData(vData);
   } else {
@@ -153,29 +153,18 @@ function upsertCandle(c, bulk) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOCAL FILE PARSING & LOADING
+// APPLY CANDLES FROM SQLITE
+// Called by applySQLiteData() in ui.js after receiving candle rows from server.
+// Resets all chart state, aggregates into display buckets, and renders.
 // ─────────────────────────────────────────────────────────────────────────────
-function parseCSVText(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return { headers: [], rows: [] };
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
-  const rows = lines.slice(1).map(line => {
-    const cols = line.split(',');
-    const obj  = {};
-    headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim().replace(/^"|"$/g,''); });
-    return obj;
-  });
-  return { headers, rows };
-}
-
-function _applyCSVCandles(candles, label) {
+function _applyCandles(candles, label) {
   // Ensure chart is ready
   if (typeof LightweightCharts === 'undefined') {
-    setTimeout(() => _applyCSVCandles(candles, label), 200);
+    setTimeout(() => _applyCandles(candles, label), 200);
     return;
   }
   if (!lwChart && !initCharts()) {
-    setTimeout(() => _applyCSVCandles(candles, label), 200);
+    setTimeout(() => _applyCandles(candles, label), 200);
     return;
   }
 
@@ -210,80 +199,4 @@ function _applyCSVCandles(candles, label) {
   document.getElementById('s-sym').textContent    = label;
   document.getElementById('sym-disp').textContent  = label;
   document.getElementById('s-iv').textContent     = ivLabel(selIv);
-}
-
-function loadLocalCSV(input) {
-  const file = input.files[0]; if (!file) return;
-  const st   = document.getElementById('local-file-status');
-  st.textContent = '⏳ reading…';
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const { rows } = parseCSVText(e.target.result);
-      const candles = rows.map(r => {
-        // Support both datetime_utc (new format) and datetime (old)
-        const dtStr  = r.datetime_utc || r.datetime || '';
-        // Handle both "2024-04-15 09:15:00" and ISO formats; treat as UTC
-        const parsed = new Date(dtStr.replace(' ','T') + (dtStr.includes('T') ? '' : 'Z'));
-        return {
-          time:   Math.floor(parsed.getTime() / 1000),
-          open:   parseFloat(r.open),
-          high:   parseFloat(r.high),
-          low:    parseFloat(r.low),
-          close:  parseFloat(r.close),
-          volume: parseFloat(r.volume || 0),
-        };
-      }).filter(c => !isNaN(c.time) && !isNaN(c.open) && isFinite(c.time));
-
-      if (candles.length === 0) { st.textContent='⚠ No valid rows'; return; }
-
-      // Sort by time ascending (some CSVs may be unsorted)
-      candles.sort((a,b) => a.time - b.time);
-
-      const label = file.name.replace(/\.csv$/i,'');
-      clearAlerts();
-      _applyCSVCandles(candles, label);
-      showAlert('ok', `✅ Loaded ${candles.length} candles from ${file.name}`);
-      st.textContent = `✅ ${candles.length} candles`;
-    } catch(err) {
-      st.textContent = '⚠ parse error';
-      showAlert('err','⚠ Could not parse CSV: ' + err.message, false);
-    }
-    input.value = '';   // allow re-loading same file
-  };
-  reader.readAsText(file);
-}
-
-function loadLocalTicks(input) {
-  const file = input.files[0]; if (!file) return;
-  const st   = document.getElementById('local-file-status');
-  st.textContent = '⏳ reading ticks…';
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const { rows } = parseCSVText(e.target.result);
-      let pushed = 0;
-      AGBUB.clear();
-      rows.forEach(r => {
-        const ltp      = parseFloat(r.ltp);
-        const vtt      = parseInt(r.vtt || '0');
-        const best_ask = r.best_ask ? parseFloat(r.best_ask) : null;
-        const best_bid = r.best_bid ? parseFloat(r.best_bid) : null;
-        const ltt_ms   = parseInt(r.ltt_ms || '0');
-        if (!isNaN(ltp) && ltt_ms > 0) {
-          AGBUB.push(ltp, best_ask, best_bid, vtt, ltt_ms);
-          pushed++;
-        }
-      });
-      setTimeout(() => requestAnimationFrame(() => AGBUB.draw()), 100);
-      clearAlerts();
-      showAlert('ok', `✅ Replayed ${pushed} ticks → ${AGBUB.items.length} ag bubbles from ${file.name}`);
-      st.textContent = `✅ ${pushed} ticks, ${AGBUB.items.length} bubbles`;
-    } catch(err) {
-      st.textContent = '⚠ parse error';
-      showAlert('err','⚠ Could not parse ticks CSV: ' + err.message, false);
-    }
-    input.value = '';
-  };
-  reader.readAsText(file);
 }

@@ -2,9 +2,20 @@
 // WEBSOCKET CONNECTION & MESSAGE HANDLING
 // ─────────────────────────────────────────────────────────────────────────────
 
+let wsRetryTmr = null;
+let wsAutoReconnect = true;
+
 function connectWS() {
   clearAlerts();
-  if(ws) ws.close();
+  wsAutoReconnect = true;
+  if (wsRetryTmr) {
+    clearTimeout(wsRetryTmr);
+    wsRetryTmr = null;
+  }
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+    return;
+  }
+  if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
   
   try {
@@ -15,7 +26,9 @@ function connectWS() {
     return;
   }
 
-  ws.onopen = () => {
+  const socket = ws;
+
+  socket.onopen = () => {
     safeCall(() => {
       setStatus('authed','● CONNECTED');
       document.getElementById('connectBtn').disabled    = true;
@@ -32,7 +45,7 @@ function connectWS() {
     });
   };
 
-  ws.onmessage = e => {
+  socket.onmessage = e => {
     try {
       let msg; try{msg=JSON.parse(e.data);}catch(_){return;}
       tickCnt++;
@@ -41,7 +54,6 @@ function connectWS() {
     if (t === 'auth_ok') {
       setTok(true,'✅ Token accepted!'); setStatus('live','● READY');
       showAlert('ok','✅ Token saved! Pick symbol and click ▶ Load');
-      document.getElementById('hist-btn').disabled = false;
     }
     else if (t === 'auth_fail') { setTok(false,'❌ '+msg.message); showAlert('err','⚠ '+msg.message,false); }
     else if (t === 'init') {
@@ -110,6 +122,22 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
     }
+    else if (t === 'sqlite_list') {
+      if (msg.source === 'replay') {
+        rpPopulateDropdown(msg.datasets); // replay list button → replay dropdown only
+      } else {
+        renderSavedList(msg.datasets);    // db list button → db panel only
+      }
+    }
+    else if (t === 'sqlite_data') { applySQLiteData(msg); }
+    // ── Replay messages ───────────────────────────────────────────────────────
+    else if (t === 'replay_ready')    { rpOnReplayReady(); }
+    else if (t === 'replay_meta')     { rpOnMeta(msg); }
+    else if (t === 'replay_progress') { rpOnProgress(msg); }
+    else if (t === 'replay_done')     { rpOnDone(msg); }
+    else if (t === 'replay_paused')   { rpSetStatus('paused'); }
+    else if (t === 'replay_resumed')  { rpSetStatus('playing'); }
+    else if (t === 'replay_stopped')  { rpOnStopped(); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }
@@ -121,12 +149,13 @@ function connectWS() {
     }
   };
 
-  ws.onerror = () => {
+  socket.onerror = () => {
     setStatus('err','ERROR');
-    showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Double-click START_SERVER.bat first, then retry.`,false);
+    showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Check the server, cloud URL, and network access, then retry.`,false);
   };
   
-  ws.onclose = () => {
+  socket.onclose = () => {
+    if (ws !== socket) return;
     try {
       setStatus('idle','DISCONNECTED');
       document.getElementById('connectBtn').disabled    = false;
@@ -136,6 +165,13 @@ function connectWS() {
       if(tpsTmr){clearInterval(tpsTmr);tpsTmr=null;}
       const tpsEl = document.getElementById('s-tps'); if (tpsEl) tpsEl.textContent = '—';
       tokSaved=false; setTok(null,'Disconnected.');
+      ws = null;
+      if (wsAutoReconnect && !wsRetryTmr) {
+        wsRetryTmr = setTimeout(() => {
+          wsRetryTmr = null;
+          connectWS();
+        }, CONFIG.WS_RETRY_MS);
+      }
     } catch(e) {
       console.error('Disconnect handler error:', e);
     }
@@ -143,5 +179,10 @@ function connectWS() {
 }
 
 function disconnectWS(){
+  wsAutoReconnect = false;
+  if (wsRetryTmr) {
+    clearTimeout(wsRetryTmr);
+    wsRetryTmr = null;
+  }
   if(ws){ws.close();ws=null;}
 }
