@@ -19,7 +19,11 @@ function connectWS() {
   setStatus('connecting','CONNECTING…');
   
   try {
-    ws = new WebSocket(CONFIG.WEBSOCKET_URL);
+    const socketUrl = window.location.protocol === 'https:' &&
+      CONFIG.WEBSOCKET_URL.startsWith('ws://')
+      ? 'wss://gem-peas-car-mean.trycloudflare.com/ws'
+      : CONFIG.WEBSOCKET_URL;
+    ws = new WebSocket(socketUrl);
   } catch(e) {
     showAlert('err','⚠ WebSocket creation failed: ' + e.message, false);
     setStatus('err','ERROR');
@@ -151,7 +155,7 @@ function connectWS() {
 
   socket.onerror = () => {
     setStatus('err','ERROR');
-    showAlert('err',`⚠ Cannot connect to ${CONFIG.WEBSOCKET_URL}\n→ Check the server, cloud URL, and network access, then retry.`,false);
+    showAlert('err',`⚠ Cannot connect to ${socketUrl}\n→ Check the server, cloud URL, and network access, then retry.`,false);
   };
   
   socket.onclose = () => {
