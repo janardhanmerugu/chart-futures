@@ -11,7 +11,7 @@ const CONFIG = {
     const override = new URLSearchParams(window.location.search).get('ws');
     if (override) return override;
     if (window.location.hostname.endsWith('vercel.app')) {
-      return 'wss://gets-moore-pleased-scanned.trycloudflare.com';
+      return 'ws://144.24.129.135/ws';
     }
     const hostname = window.location.hostname || 'localhost';
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
