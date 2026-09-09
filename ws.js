@@ -17,12 +17,12 @@ function connectWS() {
   }
   if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
-  
-  try {
-    const socketUrl = window.location.protocol === 'https:' &&
+  const socketUrl = window.location.protocol === 'https:' &&
       CONFIG.WEBSOCKET_URL.startsWith('ws://')
       ? 'wss://gem-peas-car-mean.trycloudflare.com/ws'
       : CONFIG.WEBSOCKET_URL;
+
+  try {
     ws = new WebSocket(socketUrl);
   } catch(e) {
     showAlert('err','⚠ WebSocket creation failed: ' + e.message, false);
