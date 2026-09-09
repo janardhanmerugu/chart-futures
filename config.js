@@ -8,10 +8,12 @@ const CONFIG = {
   MIN_BUBBLE_RADIUS: 3,
   DEBOUNCE_MS: 50,
   WEBSOCKET_URL: (() => {
-    const override = new URLSearchParams(window.location.search).get('ws');
-    if (override) return override;
-    // Cloudflare provides HTTPS/WSS for the VM's Nginx WebSocket proxy.
+    // HTTPS pages cannot open ws:// connections; protect against stale URL overrides.
     const remoteUrl = 'wss://gem-peas-car-mean.trycloudflare.com/ws';
+    const override = new URLSearchParams(window.location.search).get('ws');
+    if (override && !(window.location.protocol === 'https:' && override.startsWith('ws://'))) {
+      return override;
+    }
     if (window.location.protocol === 'file:' || window.location.hostname.endsWith('vercel.app')) {
       return remoteUrl;
     }
