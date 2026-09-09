@@ -10,12 +10,14 @@ const CONFIG = {
   WEBSOCKET_URL: (() => {
     const override = new URLSearchParams(window.location.search).get('ws');
     if (override) return override;
-    if (window.location.hostname.endsWith('vercel.app')) {
-      return 'wss://144.24.129.135/ws';
+    // The VM is currently exposed through plain HTTP/Nginx on port 80.
+    const remoteUrl = 'ws://144.24.129.135/ws';
+    if (window.location.protocol === 'file:' || window.location.hostname.endsWith('vercel.app')) {
+      return remoteUrl;
     }
     const hostname = window.location.hostname || 'localhost';
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${protocol}://${hostname}:8765`;
+    return `${protocol}://${hostname}/ws`;
   })(),
   WS_RETRY_MS: 5000,
   TPS_INTERVAL_MS: 1000,
