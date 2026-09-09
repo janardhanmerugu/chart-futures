@@ -10,8 +10,8 @@ const CONFIG = {
   WEBSOCKET_URL: (() => {
     const override = new URLSearchParams(window.location.search).get('ws');
     if (override) return override;
-    // The VM is currently exposed through plain HTTP/Nginx on port 80.
-    const remoteUrl = 'ws://144.24.129.135/ws';
+    // Cloudflare provides HTTPS/WSS for the VM's Nginx WebSocket proxy.
+    const remoteUrl = 'wss://gem-peas-car-mean.trycloudflare.com/ws';
     if (window.location.protocol === 'file:' || window.location.hostname.endsWith('vercel.app')) {
       return remoteUrl;
     }
