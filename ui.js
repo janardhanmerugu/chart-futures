@@ -3,12 +3,32 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ──── Bubble Control ────
-function toggleBubbles() {
-  bubOn = !bubOn;
+function setCandlesVisible(visible) {
+  candlesOn = Boolean(visible);
+  if (cSeries) cSeries.applyOptions({visible: candlesOn});
+  if (vSeries) vSeries.applyOptions({visible: candlesOn});
+  const checkbox = document.getElementById('candles-toggle');
+  if (checkbox) checkbox.checked = candlesOn;
+}
+
+function toggleCandles() {
+  setCandlesVisible(!candlesOn);
+}
+
+function setBubblesVisible(visible) {
+  bubOn = Boolean(visible);
+  const checkbox = document.getElementById('bubbles-toggle');
+  if (checkbox) checkbox.checked = bubOn;
   const btn = document.getElementById('bubBtn');
-  btn.textContent = bubOn ? '● ON' : '○ OFF';
-  btn.classList.toggle('off', !bubOn);
+  if (btn) {
+    btn.textContent = bubOn ? '● ON' : '○ OFF';
+    btn.classList.toggle('off', !bubOn);
+  }
   AGBUB.draw();
+}
+
+function toggleBubbles() {
+  setBubblesVisible(!bubOn);
 }
 
 // ──── Crosshair Mode ────
@@ -280,15 +300,21 @@ function dbLoad(idx) {
 function applyHistoryData(msg) {
   const st = document.getElementById('db-list-status');
   const candles = msg.candles || [];
+  const ticks   = msg.ticks || [];
   const label   = msg.label   || msg.instrument || '?';
 
   if (candles.length > 0) {
     clearAlerts();
     _applyCandles(candles, label);
-    showAlert('ok', `✅ Loaded ${candles.length} candles — ${label}`);
+    ticks.forEach(t => AGBUB.push(
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false));
+    AGBUB.draw();
+    showAlert('ok', `✅ Loaded ${candles.length} candles + ${AGBUB.items.length} bubbles — ${label}`);
   }
   if (!candles.length) showAlert('warn', `⚠ No candles found for ${label}`);
-  st.textContent = candles.length ? `✅ ${candles.length} candles loaded` : '⚠ empty';
+  st.textContent = candles.length
+    ? `✅ ${candles.length} candles + ${ticks.length} ticks loaded`
+    : '⚠ empty';
 }
 
 // ──── Drawer Toggle ────

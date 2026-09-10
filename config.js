@@ -53,7 +53,7 @@ let selSym=null, selIv=60, tokSaved=false;
 // Client-side candle aggregation for 1m/15m chart display (bubbles always use raw 1s candles)
 let aggBucket = null;   // { time, open, high, low, close, volume }  — current forming bucket
 
-let tickCnt=0, tpsTmr=null, bubOn=true;
+let tickCnt=0, tpsTmr=null, candlesOn=true, bubOn=true;
 let _atRealTime = true;  // tracks if user is at the live edge; false = user has dragged away
 let LOT_SIZE      = 65;           // contracts per lot — editable from sidebar
 let agbubMinContracts = 25 * LOT_SIZE; // minimum contracts to show a bubble (25 lots)

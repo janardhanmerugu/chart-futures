@@ -36,7 +36,7 @@ const AGBUB = {
   },
 
   // Call on every tick that has ltp + best_ask/best_bid + vtt
-  push(ltp, bestAsk, bestBid, vtt, timeEpochMs) {
+  push(ltp, bestAsk, bestBid, vtt, timeEpochMs, drawNow = true) {
     if (!ltp || vtt == null) return;
     const curVtt = +vtt;
 
@@ -61,7 +61,7 @@ const AGBUB = {
     this.items.push({ time: timeSec, timeMs: +timeEpochMs, ltp, contracts, lots, type });
     if (this.items.length > this.MAX) this.items.shift();
     const sb = document.getElementById('s-bubs'); if (sb) sb.textContent = this.items.length;
-    this.draw();
+    if (drawNow) this.draw();
   },
 
   _radius(lots) {

@@ -46,6 +46,7 @@ function initCharts() {
     upColor:'#26a69a', downColor:'#7b5ea7',
     borderUpColor:'#26a69a', borderDownColor:'#7b5ea7',
     wickUpColor:'#26a69a', wickDownColor:'#7b5ea7',
+    visible: candlesOn,
     priceScaleId: 'right',
   });
 
@@ -53,6 +54,7 @@ function initCharts() {
   vSeries = lwChart.addHistogramSeries({
     color: '#00d4ff44',
     priceFormat: {type:'volume'},
+    visible: candlesOn,
     priceScaleId: 'vol',   // separate hidden scale so it doesn't interfere with price
   });
   lwChart.priceScale('vol').applyOptions({

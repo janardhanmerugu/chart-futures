@@ -141,6 +141,16 @@
       </div>
       <div class="sg">
         <div class="sgl">⚡ Ag Circles</div>
+        <div style="display:flex;gap:.65rem;align-items:center;font-size:.65rem;color:var(--text);margin-bottom:.35rem">
+          <label style="display:flex;align-items:center;gap:.25rem;cursor:pointer">
+            <input id="candles-toggle" type="checkbox" checked onchange="setCandlesVisible(this.checked)"/>
+            Candles
+          </label>
+          <label style="display:flex;align-items:center;gap:.25rem;cursor:pointer">
+            <input id="bubbles-toggle" type="checkbox" checked onchange="setBubblesVisible(this.checked)"/>
+            Bubbles
+          </label>
+        </div>
         <div style="display:flex;gap:.3rem">
           <button class="bub-btn" id="bubBtn" onclick="toggleBubbles()" style="flex:1">● ON</button>
           <button class="bub-btn" id="xhair-btn" onclick="toggleCrosshair()" title="Toggle crosshair mode" style="flex:1">✥ Free</button>
