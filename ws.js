@@ -68,7 +68,8 @@ function connectWS() {
         msg.candles.forEach(c => upsertCandle(aggCandle(c), true));
         setTimeout(() => {
           AGBUB.clear();
-          lwChart.timeScale().fitContent();
+          setLiveMode(true);
+          lwChart.timeScale().scrollToRealTime();
           requestAnimationFrame(() => AGBUB.draw());
         }, 120);
         updateTicker(msg.candles[msg.candles.length-1], msg.symbol||'');

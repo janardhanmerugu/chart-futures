@@ -100,6 +100,26 @@ function initCharts() {
   return true;
 }
 
+function goToLatestCandle() {
+  setLiveMode(true);
+  if (!lwChart || !cData || cData.length === 0) return;
+  try {
+    const ts = lwChart.timeScale();
+    if (typeof ts.scrollToRealTime === 'function') {
+      ts.scrollToRealTime();
+      return;
+    }
+    const lastTime = cData[cData.length - 1]?.time;
+    if (lastTime != null && typeof ts.setVisibleLogicalRange === 'function') {
+      const lastIdx = cData.length - 1;
+      ts.setVisibleLogicalRange({ from: Math.max(0, lastIdx - 60), to: lastIdx + 1 });
+    }
+  } catch (e) {
+    console.warn('goToLatestCandle failed:', e);
+  }
+  requestAnimationFrame(() => AGBUB.draw());
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CLIENT-SIDE CANDLE AGGREGATOR (chart display only — bubbles use raw 1s candles)
 // When selIv=60 or 900: groups 1s raw candles into 1m/15m OHLCV buckets.
