@@ -141,7 +141,7 @@ function upsertCandle(c, bulk) {
   if(cMap[t] !== undefined) { cData[cMap[t]]=cd; vData[cMap[t]]=vd; }
   else { cMap[t]=cData.length; cData.push(cd); vData.push(vd); }
   if (bulk) {
-    // Full rebuild — used by SQLite load. setData resets viewport (intentional).
+    // Full rebuild — used by history load. setData resets the viewport.
     cSeries.setData(cData);
     vSeries.setData(vData);
   } else {
@@ -153,8 +153,8 @@ function upsertCandle(c, bulk) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// APPLY CANDLES FROM SQLITE
-// Called by applySQLiteData() in ui.js after receiving candle rows from server.
+// APPLY CANDLES FROM POSTGRESQL HISTORY
+// Called by applyHistoryData() in ui.js after receiving candle rows from server.
 // Resets all chart state, aggregates into display buckets, and renders.
 // ─────────────────────────────────────────────────────────────────────────────
 function _applyCandles(candles, label) {

@@ -231,9 +231,9 @@ function updateTicker(c, sym) {
   el.textContent=`${chg>=0?'+':''}${fN(chg)} (${pct}%)`; el.className='tv '+(chg>=0?'up':'dn');
 }
 
-// ──── SQLite DB Loader ────
+// ──── PostgreSQL history loader ────
 
-let _savedDatasets = [];   // cache of last sqlite_list response
+let _savedDatasets = [];
 
 function dbListSaved() {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -242,7 +242,7 @@ function dbListSaved() {
   const dateVal = document.getElementById('db-date-filter').value.trim();
   document.getElementById('db-list-status').textContent = '⏳ loading…';
   document.getElementById('db-dataset-list').innerHTML  = '';
-  ws.send(JSON.stringify({ type: 'list_saved', date: dateVal, source: 'db' }));
+  ws.send(JSON.stringify({ type: 'list_history', date: dateVal }));
 }
 
 function renderSavedList(datasets) {
@@ -258,32 +258,28 @@ function renderSavedList(datasets) {
     const row = document.createElement('div');
     row.className = 'db-row';
     row.innerHTML =
-      `<span class="db-row-info"><b>${d.instrument}</b></span>` +
+      `<span class="db-row-info"><b>${d.instrument}</b><small>${d.candle_count} candles</small></span>` +
       `<span class="db-row-btns">` +
-        (d.has_candles ? `<button class="db-load-btn" onclick="dbLoad(${i},'candles')">Candles</button>` : '') +
-        (d.has_ticks   ? `<button class="db-load-btn tick" onclick="dbLoad(${i},'ticks')">Ticks</button>` : '') +
-        (d.has_candles && d.has_ticks ? `<button class="db-load-btn both" onclick="dbLoad(${i},'both')">Both</button>` : '') +
+        `<button class="db-load-btn" onclick="dbLoad(${i})">Load</button>` +
       `</span>`;
     el.appendChild(row);
   });
 }
 
-function dbLoad(idx, what) {
+function dbLoad(idx) {
   const d = _savedDatasets[idx];
   if (!d || !ws || ws.readyState !== WebSocket.OPEN) return;
-  document.getElementById('db-list-status').textContent = `⏳ loading ${what}…`;
+  document.getElementById('db-list-status').textContent = '⏳ loading history…';
   ws.send(JSON.stringify({
-    type:       'load_sqlite',
+    type:       'load_history',
     date:       d.date,
     instrument: d.instrument_key || d.instrument,
-    load:       what,
   }));
 }
 
-function applySQLiteData(msg) {
+function applyHistoryData(msg) {
   const st = document.getElementById('db-list-status');
   const candles = msg.candles || [];
-  const ticks   = msg.ticks   || [];
   const label   = msg.label   || msg.instrument || '?';
 
   if (candles.length > 0) {
@@ -291,23 +287,8 @@ function applySQLiteData(msg) {
     _applyCandles(candles, label);
     showAlert('ok', `✅ Loaded ${candles.length} candles — ${label}`);
   }
-  if (ticks.length > 0) {
-    let pushed = 0;
-    if (candles.length === 0) AGBUB.clear();   // only reset bubbles if no candles loaded
-    ticks.forEach(r => {
-      if (r.ltp != null && r.ltt_ms > 0) {
-        AGBUB.push(+r.ltp, r.best_ask ?? null, r.best_bid ?? null, +r.vtt, +r.ltt_ms);
-        pushed++;
-      }
-    });
-    setTimeout(() => requestAnimationFrame(() => AGBUB.draw()), 100);
-    if (candles.length === 0) showAlert('ok', `✅ Replayed ${pushed} ticks → ${AGBUB.items.length} bubbles — ${label}`);
-    else showAlert('ok', `✅ ${candles.length} candles + ${AGBUB.items.length} bubbles — ${label}`);
-  }
-  if (!candles.length && !ticks.length) showAlert('warn', `⚠ No data found for ${label}`);
-  st.textContent = candles.length || ticks.length
-    ? `✅ ${candles.length} candles, ${ticks.length} ticks`
-    : '⚠ empty';
+  if (!candles.length) showAlert('warn', `⚠ No candles found for ${label}`);
+  st.textContent = candles.length ? `✅ ${candles.length} candles loaded` : '⚠ empty';
 }
 
 // ──── Drawer Toggle ────

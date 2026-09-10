@@ -64,9 +64,9 @@
       </div>
     </div>
 
-    <!-- LOAD FROM SERVER DB -->
+    <!-- LOAD HISTORY FROM POSTGRESQL -->
     <div class="drawer-section">
-      <div class="drawer-section-title">🗄️ Load from Server DB</div>
+      <div class="drawer-section-title">🗄️ Load History</div>
       <div style="display:flex;flex-direction:column;gap:.35rem">
         <!-- Date filter + refresh -->
         <div style="display:flex;gap:.3rem;align-items:center">
@@ -75,7 +75,7 @@
           <button class="hbtn primary" style="padding:.22rem .55rem;font-size:.65rem"
             onclick="dbListSaved()" title="Fetch available datasets from server">↺ List</button>
         </div>
-        <span id="db-list-status" style="font-size:.6rem;color:var(--muted)">Connect + click ↺ List</span>
+        <span id="db-list-status" style="font-size:.6rem;color:var(--muted)">Select a date + click ↺ List</span>
         <!-- Scrollable dataset list -->
         <div id="db-dataset-list" style="
           display:flex;flex-direction:column;gap:.25rem;
