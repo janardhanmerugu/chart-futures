@@ -220,11 +220,21 @@ function loadSym() {
   if(!ws||ws.readyState!==WebSocket.OPEN){showAlert('err','⚠ Not connected. Click Connect.');return;}
   clearAlerts();
   aggBucket = null;
+  clearLastPriceLine();
   setLiveMode(true);
   applyLotSizeForSelection(selSym);
   const backendIv = (selIv === 60 || selIv === 300 || selIv === 900) ? 1 : selIv;
   ws.send(JSON.stringify({type:'subscribe', symbol:selSym, interval:backendIv, display_interval:selIv}));
   setTimeout(() => goToLatestCandle(), 250);
+}
+
+let lastPriceLine = null;
+
+function clearLastPriceLine() {
+  if (cSeries && lastPriceLine) {
+    try { cSeries.removePriceLine(lastPriceLine); } catch (_) {}
+    lastPriceLine = null;
+  }
 }
 
 // ──── Status & Alerts ────
@@ -240,6 +250,24 @@ function clearAlerts(){const b=document.getElementById('alerts');b.innerHTML='';
 function updateLTP(ltp) {
   const el=document.getElementById('t-ltp'), prev=parseFloat(el.dataset.p||ltp);
   el.textContent=fN(ltp); el.className='tv '+(ltp>=prev?'up':'dn'); el.dataset.p=ltp;
+
+  if (cSeries == null || ltp == null) return;
+  const price = Number(ltp);
+
+  if (lastPriceLine) {
+    try { cSeries.removePriceLine(lastPriceLine); } catch (_) {}
+    lastPriceLine = null;
+  }
+
+  lastPriceLine = cSeries.createPriceLine({
+    price,
+    color: '#ffe033',
+    lineWidth: 1,
+    lineStyle: 2,
+    axisLabelVisible: true,
+    title: 'LTP',
+    lineVisible: true,
+  });
 }
 function updateTicker(c, sym) {
   if(sym){document.getElementById('sym-disp').textContent=sym; document.getElementById('s-sym').textContent=sym;}

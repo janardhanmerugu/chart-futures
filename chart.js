@@ -79,9 +79,24 @@ function initCharts() {
   // Mount bubble overlay canvas
   AGBUB.mount();
 
-  // Detect user drag — set _atRealTime=false so ticks don't chase them back
-  cc.addEventListener('mousedown', () => { setLiveMode(false); });
-  cc.addEventListener('touchstart', () => { setLiveMode(false); }, {passive:true});
+  // Only leave live mode on a real drag. Price-axis zoom / wheel actions should not
+  // disable the auto-follow to latest candle.
+  let dragStart = null;
+  cc.addEventListener('pointerdown', e => {
+    dragStart = { x: e.clientX, y: e.clientY };
+  });
+  cc.addEventListener('pointermove', e => {
+    if (!dragStart) return;
+    const dx = Math.abs(e.clientX - dragStart.x);
+    const dy = Math.abs(e.clientY - dragStart.y);
+    if (dx > 6 || dy > 6) {
+      setLiveMode(false);
+      dragStart = null;
+    }
+  });
+  cc.addEventListener('pointerup', () => { dragStart = null; });
+  cc.addEventListener('pointerleave', () => { dragStart = null; });
+  cc.addEventListener('wheel', () => { setLiveMode(true); }, { passive: true });
 
   // Resize observer — watches chart-con only
   const wrap = document.getElementById('chart-wrap');
