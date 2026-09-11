@@ -221,11 +221,16 @@ function loadSym() {
   clearAlerts();
   aggBucket = null;
   clearLastPriceLine();
-  setLiveMode(true);
   applyLotSizeForSelection(selSym);
-  const backendIv = (selIv === 60 || selIv === 300 || selIv === 900) ? 1 : selIv;
-  ws.send(JSON.stringify({type:'subscribe', symbol:selSym, interval:backendIv, display_interval:selIv}));
-  setTimeout(() => goToLatestCandle(), 250);
+  historyReadyForSubscribe = false;
+  if (lwChart) {
+    cData=[]; vData=[]; cMap={};
+    cSeries.setData([]); vSeries.setData([]);
+  }
+  showAlert('info', `Loading 7 days of ${ivLabel(selIv)} history…`, false);
+  ws.send(JSON.stringify({
+    type: 'load_symbol_history', instrument: selSym, interval: selIv,
+  }));
 }
 
 let lastPriceLine = null;
@@ -337,7 +342,7 @@ function applyHistoryData(msg) {
     clearAlerts();
     _applyCandles(candles, label);
     ticks.forEach(t => AGBUB.push(
-      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false));
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false, t.contracts));
     AGBUB.draw();
     showAlert('ok', `✅ Loaded ${candles.length} candles + ${AGBUB.items.length} bubbles — ${label}`);
   }
@@ -345,6 +350,22 @@ function applyHistoryData(msg) {
   st.textContent = candles.length
     ? `✅ ${candles.length} candles + ${ticks.length} ticks loaded`
     : '⚠ empty';
+}
+
+function applySymbolHistory(msg) {
+  const candles = msg.candles || [];
+  const ticks = msg.ticks || [];
+  const label = msg.instrument || selSym || '?';
+  aggBucket = null;
+  if (candles.length) {
+    _applyCandles(candles, label, true);
+    ticks.forEach(t => AGBUB.push(
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false, t.contracts));
+    AGBUB.draw();
+    showAlert('ok', `✅ Loaded ${candles.length} candles for ${label}`);
+  } else {
+    showAlert('warn', `⚠ No historical ticks found for ${label}`);
+  }
 }
 
 // ──── Drawer Toggle ────

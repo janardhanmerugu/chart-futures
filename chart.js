@@ -179,7 +179,7 @@ function upsertCandle(c, bulk) {
 // Called by applyHistoryData() in ui.js after receiving candle rows from server.
 // Resets all chart state, aggregates into display buckets, and renders.
 // ─────────────────────────────────────────────────────────────────────────────
-function _applyCandles(candles, label) {
+function _applyCandles(candles, label, preAggregated = false) {
   // Ensure chart is ready
   if (typeof LightweightCharts === 'undefined') {
     setTimeout(() => _applyCandles(candles, label), 200);
@@ -194,10 +194,10 @@ function _applyCandles(candles, label) {
   cData=[]; vData=[]; cMap={};
   AGBUB.clear(); aggBucket = null;
 
-  // Aggregate candles into display buckets (1m/5m/15m) and collect into arrays
+  // History requested at the selected interval is already aggregated by the server.
   const aggCData = [], aggVData = [], aggMap = {};
   candles.forEach(c => {
-    const agg = aggCandle(c);
+    const agg = preAggregated ? c : aggCandle(c);
     const t   = agg.time + IST_OFFSET_S;
     const cd  = {time:t, open:agg.open, high:agg.high, low:agg.low, close:agg.close};
     const vd  = {time:t, value:agg.volume, color: agg.close>=agg.open ? '#00e67644':'#ff3d5a44'};
