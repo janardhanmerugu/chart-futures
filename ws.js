@@ -79,12 +79,28 @@ function connectWS() {
     else if (t === 'switching') {
       clearAlerts();
       if (!initCharts()) return;
-      AGBUB.clear();
-      aggBucket = null;
+      if (historyReadyForSubscribe) {
+        historyReadyForSubscribe = false;
+      } else {
+        AGBUB.clear();
+        aggBucket = null;
+      }
       showAlert('info',`🔄 Switching to ${msg.symbol} @ ${ivLabel(selIv)}…`);
       document.getElementById('s-sym').textContent  = msg.symbol;
       document.getElementById('s-iv').textContent   = ivLabel(selIv);
       document.getElementById('sym-disp').textContent = msg.symbol;
+    }
+    else if (t === 'symbol_history') {
+      if (!lwChart && !initCharts()) return;
+      applySymbolHistory(msg);
+      historyReadyForSubscribe = true;
+      const backendIv = selIv;
+      ws.send(JSON.stringify({
+        type: 'subscribe', symbol: selSym, interval: backendIv, display_interval: selIv,
+      }));
+      setLiveMode(true);
+      document.getElementById('s-iv').textContent = ivLabel(selIv);
+      setTimeout(() => goToLatestCandle(), 250);
     }
     else if (t === 'status') {
       if (msg.status==='connected') {
@@ -106,7 +122,7 @@ function connectWS() {
     }
     else if (t === 'candle') {
       if (!lwChart && !initCharts()) return;
-      const chartCandle = aggCandle(msg.candle);
+      const chartCandle = msg.candle;
       upsertCandle(chartCandle, false);
       updateTicker(chartCandle, msg.instrument);
       if (_atRealTime) lwChart.timeScale().scrollToRealTime();
@@ -122,7 +138,7 @@ function connectWS() {
         AGBUB.push(+msg.ltp, bestAsk, bestBid, +msg.vtt, +msg.ltt);
       }
       if (msg.current_candle) {
-        const chartCandle = aggCandle(msg.current_candle);
+        const chartCandle = msg.current_candle;
         upsertCandle(chartCandle, false);
         updateTicker(chartCandle, msg.instrument);
       }

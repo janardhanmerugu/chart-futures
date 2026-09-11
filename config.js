@@ -50,6 +50,7 @@ const IST_OFFSET_MS = CONFIG.IST_OFFSET_MS;  // milliseconds
 let ws=null, lwChart=null, cSeries=null, vSeries=null;
 let cData=[], vData=[], cMap={};
 let selSym=null, selIv=60, tokSaved=false;
+let historyReadyForSubscribe = false;
 // Client-side candle aggregation for 1m/15m chart display (bubbles always use raw 1s candles)
 let aggBucket = null;   // { time, open, high, low, close, volume }  — current forming bucket
 
