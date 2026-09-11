@@ -5,7 +5,7 @@
 // Triggered on every tick, not on candles.
 // X = tick time mapped to chart, Y = LTP price
 // Size = contracts (ltq), filtered by agbubMinContracts
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────
 
 const AGBUB = {
   canvas:  null,
