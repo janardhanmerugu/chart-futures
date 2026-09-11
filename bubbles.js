@@ -36,16 +36,15 @@ const AGBUB = {
   },
 
   // Call on every tick that has ltp + best_ask/best_bid + vtt
-  push(ltp, bestAsk, bestBid, vtt, timeEpochMs, drawNow = true) {
-    if (!ltp || vtt == null) return;
-    const curVtt = +vtt;
+  push(ltp, bestAsk, bestBid, vtt, timeEpochMs, drawNow = true, contractsOverride = null) {
+    if (!ltp || (vtt == null && contractsOverride == null)) return;
+    const curVtt = vtt == null ? null : +vtt;
 
     // Compute vtt diff; skip if first tick or vtt reset (new day)
-    let contracts = 0;
-    if (this.prevVtt !== null && curVtt >= this.prevVtt) {
+    let contracts = contractsOverride == null ? 0 : Math.max(0, +contractsOverride || 0);
+    if (contractsOverride == null && this.prevVtt !== null && curVtt >= this.prevVtt)
       contracts = curVtt - this.prevVtt;
-    }
-    this.prevVtt = curVtt;
+    if (curVtt != null) this.prevVtt = curVtt;
 
     if (contracts < agbubMinContracts) return;  // also filters 0 (duplicate ticks)
 

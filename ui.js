@@ -342,7 +342,7 @@ function applyHistoryData(msg) {
     clearAlerts();
     _applyCandles(candles, label);
     ticks.forEach(t => AGBUB.push(
-      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false));
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false, t.contracts));
     AGBUB.draw();
     showAlert('ok', `✅ Loaded ${candles.length} candles + ${AGBUB.items.length} bubbles — ${label}`);
   }
@@ -360,7 +360,7 @@ function applySymbolHistory(msg) {
   if (candles.length) {
     _applyCandles(candles, label, true);
     ticks.forEach(t => AGBUB.push(
-      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false));
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false, t.contracts));
     AGBUB.draw();
     showAlert('ok', `✅ Loaded ${candles.length} candles for ${label}`);
   } else {
