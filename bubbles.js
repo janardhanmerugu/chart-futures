@@ -15,6 +15,8 @@ const AGBUB = {
   MIN_R:   CONFIG.MIN_BUBBLE_RADIUS,
   hovered: null,
   prevVtt: null,     // last seen vtt for diff calculation
+  prevTimeEpochMs: null, // last tick timestamp for gap detection
+  GAP_LIMIT_MS: 2000,
 
   mount() {
     const canvas = document.getElementById('agbub-canvas');
@@ -39,6 +41,17 @@ const AGBUB = {
   push(ltp, bestAsk, bestBid, vtt, timeEpochMs, drawNow = true, contractsOverride = null) {
     if (!ltp || (vtt == null && contractsOverride == null)) return;
     const curVtt = vtt == null ? null : +vtt;
+    const curTimeEpochMs = +timeEpochMs;
+    const tickGapMs = this.prevTimeEpochMs == null
+      ? 0
+      : curTimeEpochMs - this.prevTimeEpochMs;
+    this.prevTimeEpochMs = curTimeEpochMs;
+
+    // Do not create a bubble across a gap, for live or historical ticks.
+    if (tickGapMs > this.GAP_LIMIT_MS) {
+      this.prevVtt = curVtt;
+      return;
+    }
 
     // Compute vtt diff; skip if first tick or vtt reset (new day)
     let contracts = contractsOverride == null ? 0 : Math.max(0, +contractsOverride || 0);
@@ -231,6 +244,7 @@ const AGBUB = {
     this.items   = [];
     this.hovered = null;
     this.prevVtt = null;   // reset vtt diff tracker on symbol switch / reconnect
+    this.prevTimeEpochMs = null;
     this._hideTip();
     if (this.ctx && this.canvas)
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
