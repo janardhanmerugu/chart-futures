@@ -19,7 +19,7 @@ function connectWS() {
   setStatus('connecting','CONNECTING…');
   const socketUrl = window.location.protocol === 'https:' &&
       CONFIG.WEBSOCKET_URL.startsWith('ws://')
-      ? 'wss://gem-peas-car-mean.trycloudflare.com/ws'
+      ? 'wss://src-saw-scholarship-trading.trycloudflare.com/ws'
       : CONFIG.WEBSOCKET_URL;
 
   try {

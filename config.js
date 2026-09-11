@@ -9,7 +9,7 @@ const CONFIG = {
   DEBOUNCE_MS: 50,
   WEBSOCKET_URL: (() => {
     // HTTPS pages cannot open ws:// connections; protect against stale URL overrides.
-    const remoteUrl = 'wss://gem-peas-car-mean.trycloudflare.com/ws';
+    const remoteUrl = 'wss://src-saw-scholarship-trading.trycloudflare.com/ws';
     const override = new URLSearchParams(window.location.search).get('ws');
     if (override && !(window.location.protocol === 'https:' && override.startsWith('ws://'))) {
       return override;
