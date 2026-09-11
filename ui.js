@@ -354,10 +354,14 @@ function applyHistoryData(msg) {
 
 function applySymbolHistory(msg) {
   const candles = msg.candles || [];
+  const ticks = msg.ticks || [];
   const label = msg.instrument || selSym || '?';
   aggBucket = null;
   if (candles.length) {
     _applyCandles(candles, label, true);
+    ticks.forEach(t => AGBUB.push(
+      t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false));
+    AGBUB.draw();
     showAlert('ok', `✅ Loaded ${candles.length} candles for ${label}`);
   } else {
     showAlert('warn', `⚠ No historical ticks found for ${label}`);

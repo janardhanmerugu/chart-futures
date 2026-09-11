@@ -74,7 +74,7 @@ const AGBUB = {
     try {
       // Snap tick time to the same bucket interval the chart uses,
       // then add IST_OFFSET_S because upsertCandle shifts all times by +19800s
-      const bucketIv = (selIv === 60 || selIv === 300 || selIv === 900) ? selIv : 5;
+      const bucketIv = [60, 300, 900, 1800].includes(selIv) ? selIv : 5;
       const chartT = Math.floor(timeSec / bucketIv) * bucketIv + IST_OFFSET_S;
       const x = lwChart.timeScale().timeToCoordinate(chartT);
       const y = cSeries.priceToCoordinate(price);

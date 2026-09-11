@@ -78,7 +78,7 @@ function connectWS() {
     }
     else if (t === 'switching') {
       clearAlerts();
-      if (!initCharts()) return;
+      if (!lwChart && !initCharts()) return;
       if (historyReadyForSubscribe) {
         historyReadyForSubscribe = false;
       } else {
@@ -142,6 +142,7 @@ function connectWS() {
         upsertCandle(chartCandle, false);
         updateTicker(chartCandle, msg.instrument);
       }
+      requestAnimationFrame(() => AGBUB.draw());
     }
     else if (t === 'history_list') {
       renderSavedList(msg.datasets);
