@@ -150,6 +150,35 @@ function aggCandle(raw) {
   return aggBucket;
 }
 
+function chartIntervalSeconds() {
+  return Math.max(1, Number(selIv) || 1);
+}
+
+function addWhitespacePoint(time, candles, volumes, map) {
+  if (map[time] !== undefined) return;
+  map[time] = candles.length;
+  candles.push({time});
+  volumes.push({time});
+}
+
+function isMarketSessionTime(time) {
+  const date = new Date(time * 1000);
+  const day = date.getUTCDay();
+  const minutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+  return day >= 1 && day <= 5 && minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30;
+}
+
+function addMissingPoints(lastTime, nextTime, candles, volumes, map) {
+  const interval = chartIntervalSeconds();
+  for (let time = lastTime + interval; time < nextTime; time += interval) {
+    if (isMarketSessionTime(time)) addWhitespacePoint(time, candles, volumes, map);
+  }
+}
+
+function candleCount(data) {
+  return data.reduce((count, item) => count + (item.open == null ? 0 : 1), 0);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // UPSERT CANDLE
 // bulk=true  → called during init/history load  → use setData() (full rebuild)
@@ -160,6 +189,20 @@ function upsertCandle(c, bulk) {
   const t  = c.time + IST_OFFSET_S;   // shift to IST so LW axis shows correct time
   const cd = {time:t, open:c.open, high:c.high, low:c.low, close:c.close};
   const vd = {time:t, value:c.volume, color: c.close>=c.open ? '#00e67644':'#ff3d5a44'};
+  const lastTime = cData[cData.length - 1]?.time;
+  if (lastTime != null && t > lastTime + chartIntervalSeconds()) {
+    const gapCandles = [], gapVolumes = [], gapMap = {};
+    addMissingPoints(lastTime, t, gapCandles, gapVolumes, gapMap);
+    gapCandles.forEach((blank, index) => {
+      cMap[blank.time] = cData.length;
+      cData.push(blank);
+      vData.push(gapVolumes[index]);
+      if (!bulk) {
+        cSeries.update(blank);
+        vSeries.update(gapVolumes[index]);
+      }
+    });
+  }
   if(cMap[t] !== undefined) { cData[cMap[t]]=cd; vData[cMap[t]]=vd; }
   else { cMap[t]=cData.length; cData.push(cd); vData.push(vd); }
   if (bulk) {
@@ -171,7 +214,7 @@ function upsertCandle(c, bulk) {
     cSeries.update(cd);
     vSeries.update(vd);
   }
-  document.getElementById('s-bars').textContent = cData.length;
+  document.getElementById('s-bars').textContent = candleCount(cData);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,20 +239,25 @@ function _applyCandles(candles, label, preAggregated = false) {
 
   // History requested at the selected interval is already aggregated by the server.
   const aggCData = [], aggVData = [], aggMap = {};
+  let lastTime = null;
   candles.forEach(c => {
     const agg = preAggregated ? c : aggCandle(c);
     const t   = agg.time + IST_OFFSET_S;
     const cd  = {time:t, open:agg.open, high:agg.high, low:agg.low, close:agg.close};
     const vd  = {time:t, value:agg.volume, color: agg.close>=agg.open ? '#00e67644':'#ff3d5a44'};
+    if (lastTime != null && t > lastTime + chartIntervalSeconds()) {
+      addMissingPoints(lastTime, t, aggCData, aggVData, aggMap);
+    }
     if (aggMap[t] !== undefined) { aggCData[aggMap[t]]=cd; aggVData[aggMap[t]]=vd; }
     else { aggMap[t]=aggCData.length; aggCData.push(cd); aggVData.push(vd); }
+    if (lastTime == null || t > lastTime) lastTime = t;
   });
 
   // Single setData call — fast and correct
   cData = aggCData; vData = aggVData; cMap = aggMap;
   cSeries.setData(cData);
   vSeries.setData(vData);
-  document.getElementById('s-bars').textContent = cData.length;
+  document.getElementById('s-bars').textContent = candleCount(cData);
 
   setTimeout(() => {
     lwChart.timeScale().fitContent();
