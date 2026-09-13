@@ -233,6 +233,32 @@ function loadSym() {
   }));
 }
 
+function renderActiveSubscriptions(instruments) {
+  const list = document.getElementById('active-subscription-list');
+  const count = document.getElementById('active-subscription-count');
+  const button = document.getElementById('unsubscribe-all-btn');
+  if (!list || !count) return;
+  const active = Array.isArray(instruments) ? instruments : [];
+  count.textContent = active.length;
+  if (button) button.disabled = active.length === 0 || !ws || ws.readyState !== WebSocket.OPEN;
+  list.textContent = '';
+  if (!active.length) {
+    list.textContent = 'None';
+    return;
+  }
+  active.forEach(instrument => {
+    const item = document.createElement('div');
+    item.className = 'active-subscription-item';
+    item.textContent = typeof instrument === 'string' ? instrument : instrument.name;
+    list.appendChild(item);
+  });
+}
+
+function unsubscribeAll() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({type: 'unsubscribe_all'}));
+}
+
 let lastPriceLine = null;
 
 function clearLastPriceLine() {

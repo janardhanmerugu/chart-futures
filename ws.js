@@ -38,6 +38,7 @@ function connectWS() {
       document.getElementById('connectBtn').disabled    = true;
       document.getElementById('disconnectBtn').disabled = false;
       document.getElementById('saveTokenBtn').disabled  = false;
+      renderActiveSubscriptions([]);
       showAlert('info','✅ Connected! Paste your token and click Save Token.');
       if (tpsTmr) clearInterval(tpsTmr);
       tpsTmr = setInterval(() => {
@@ -153,6 +154,7 @@ function connectWS() {
     }
     else if (t === 'futures_data') { renderFutures(msg.data); }
     else if (t === 'futures_error') { onFuturesError(msg.message); }
+    else if (t === 'subscriptions') { renderActiveSubscriptions(msg.instruments); }
     else if (t === 'error') { showAlert('err','⚠ '+msg.message,false); }
     } catch(e) {
       console.error('Message handler error:', e);
@@ -174,6 +176,7 @@ function connectWS() {
       document.getElementById('loadBtn').disabled       = true;
       if(tpsTmr){clearInterval(tpsTmr);tpsTmr=null;}
       const tpsEl = document.getElementById('s-tps'); if (tpsEl) tpsEl.textContent = '—';
+      renderActiveSubscriptions([]);
       tokSaved=false; setTok(null,'Disconnected.');
       ws = null;
       if (wsAutoReconnect && !wsRetryTmr) {

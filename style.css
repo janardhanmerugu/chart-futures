@@ -71,6 +71,15 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .iv-group{flex-wrap:wrap}
 .load-btn{width:100%;margin-top:.3rem;padding:.45rem 1rem;font-size:.75rem}
 .bub-btn{width:100%}
+#active-subscriptions{margin-top:.15rem;padding:.45rem .5rem;border:1px solid var(--border);border-radius:5px;background:#080d16;color:var(--muted);font-size:.58rem;line-height:1.45}
+.active-subscriptions-head{display:flex;align-items:center;justify-content:space-between;gap:.35rem}
+.active-subscriptions-title{color:var(--accent);font-size:.58rem;text-transform:uppercase;letter-spacing:.06em}
+.active-subscriptions-title strong{color:var(--text);font-size:.68rem}
+.unsubscribe-all-btn{font-family:'JetBrains Mono',monospace;font-size:.54rem;padding:.18rem .3rem;border:1px solid var(--red);border-radius:4px;background:transparent;color:var(--red);cursor:pointer;white-space:nowrap}
+.unsubscribe-all-btn:hover:not(:disabled){background:#ff3d5a22}
+.unsubscribe-all-btn:disabled{opacity:.35;cursor:not-allowed}
+#active-subscription-list{margin-top:.25rem;max-height:96px;overflow-y:auto;word-break:break-all}
+.active-subscription-item{padding:.12rem 0;color:var(--text);border-top:1px solid #152238}
 #sidebar-top{background:#0b1525;border-bottom:2px solid var(--accent);padding:.5rem .7rem;display:flex;flex-direction:column;gap:.35rem;flex-shrink:0}
 #sidebar-brand{font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem;color:var(--accent);display:flex;align-items:center;justify-content:space-between}
 #sidebar-conn{display:flex;gap:.3rem}

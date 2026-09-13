@@ -189,6 +189,13 @@
       </div>
 
       <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
+      <div id="active-subscriptions" aria-live="polite">
+        <div class="active-subscriptions-head">
+          <div class="active-subscriptions-title">● Active Upstox subscriptions <strong id="active-subscription-count">0</strong></div>
+          <button class="unsubscribe-all-btn" id="unsubscribe-all-btn" onclick="unsubscribeAll()" disabled>Unsubscribe all</button>
+        </div>
+        <div id="active-subscription-list">None</div>
+      </div>
     </div>
 
   </div><!-- /side-drawer -->
