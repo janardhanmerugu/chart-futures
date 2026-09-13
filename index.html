@@ -191,10 +191,15 @@
       <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
       <div id="active-subscriptions" aria-live="polite">
         <div class="active-subscriptions-head">
-          <div class="active-subscriptions-title">● Active Upstox subscriptions <strong id="active-subscription-count">0</strong></div>
+          <button class="active-subscriptions-toggle" id="active-subscriptions-toggle" onclick="toggleActiveSubscriptions()" aria-expanded="true" aria-controls="active-subscription-list">
+            <span class="active-subscriptions-chevron" aria-hidden="true">⌄</span>
+            <span class="active-subscriptions-title">● Active Upstox subscriptions <strong id="active-subscription-count">0</strong></span>
+          </button>
           <button class="unsubscribe-all-btn" id="unsubscribe-all-btn" onclick="unsubscribeAll()" disabled>Unsubscribe all</button>
         </div>
-        <div id="active-subscription-list">None</div>
+        <div id="active-subscription-list">
+          <div class="active-subscription-empty">No active instruments</div>
+        </div>
       </div>
     </div>
 

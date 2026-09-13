@@ -243,15 +243,46 @@ function renderActiveSubscriptions(instruments) {
   if (button) button.disabled = active.length === 0 || !ws || ws.readyState !== WebSocket.OPEN;
   list.textContent = '';
   if (!active.length) {
-    list.textContent = 'None';
+    const empty = document.createElement('div');
+    empty.className = 'active-subscription-empty';
+    empty.textContent = 'No active instruments';
+    list.appendChild(empty);
     return;
   }
   active.forEach(instrument => {
     const item = document.createElement('div');
     item.className = 'active-subscription-item';
-    item.textContent = typeof instrument === 'string' ? instrument : instrument.name;
+    const name = typeof instrument === 'string' ? instrument : instrument.name;
+    const key = typeof instrument === 'string' ? instrument : instrument.key;
+    item.title = key;
+    item.innerHTML = '<span class="active-subscription-dot"></span>';
+    const label = document.createElement('span');
+    label.textContent = name;
+    item.appendChild(label);
     list.appendChild(item);
   });
+}
+
+function toggleActiveSubscriptions() {
+  const panel = document.getElementById('active-subscriptions');
+  const toggle = document.getElementById('active-subscriptions-toggle');
+  const list = document.getElementById('active-subscription-list');
+  if (!panel || !toggle || !list) return;
+  const collapsed = panel.classList.toggle('collapsed');
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  list.hidden = collapsed;
+  sessionStorage.setItem('active_subscriptions_collapsed', String(collapsed));
+}
+
+function restoreActiveSubscriptionsState() {
+  const panel = document.getElementById('active-subscriptions');
+  const toggle = document.getElementById('active-subscriptions-toggle');
+  const list = document.getElementById('active-subscription-list');
+  if (!panel || !toggle || !list) return;
+  const collapsed = sessionStorage.getItem('active_subscriptions_collapsed') === 'true';
+  panel.classList.toggle('collapsed', collapsed);
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  list.hidden = collapsed;
 }
 
 function unsubscribeAll() {
