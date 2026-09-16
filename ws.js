@@ -19,7 +19,7 @@ function connectWS() {
   setStatus('connecting','CONNECTING…');
   const socketUrl = window.location.protocol === 'https:' &&
       CONFIG.WEBSOCKET_URL.startsWith('ws://')
-      ? 'wss://relocation-struct-ability-simon.trycloudflare.com/ws'
+      ? 'wss://chronicle-expect-something-administered.trycloudflare.com/ws'
       : CONFIG.WEBSOCKET_URL;
 
   try {
