@@ -17,7 +17,10 @@ function connectWS() {
   }
   if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
-  const socketUrl = CONFIG.WEBSOCKET_URL;
+  const socketUrl = window.location.protocol === 'https:' &&
+      CONFIG.WEBSOCKET_URL.startsWith('ws://')
+      ? 'wss://src-saw-scholarship-trading.trycloudflare.com/ws'
+      : CONFIG.WEBSOCKET_URL;
 
   try {
     ws = new WebSocket(socketUrl);
