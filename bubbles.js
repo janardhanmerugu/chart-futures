@@ -173,7 +173,7 @@ const AGBUB = {
       }
     });
 
-    // Restore canvas context (clipping removed, context properties restored)
+    // Restore canvas context (clipping removed, context  restored)
     ctx.restore();
   },
 
