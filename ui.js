@@ -325,7 +325,7 @@ function updateTicker(c, sym) {
   el.textContent=`${chg>=0?'+':''}${fN(chg)} (${pct}%)`; el.className='tv '+(chg>=0?'up':'dn');
 }
 
-// ──── PostgreSQL history loader ────
+// ──── PostgreSQL history loader for saved datasets ────
 
 let _savedDatasets = [];
 
