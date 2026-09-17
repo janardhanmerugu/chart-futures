@@ -14,7 +14,7 @@ const CONFIG = {
     if (override && !(window.location.protocol === 'https:' && override.startsWith('ws://'))) {
       return override;
     }
-    if (window.location.protocol === 'file:' || window.location.hostname.endsWith('vercel.app')) {
+    if (window.location.protocol === 'file:' || window.location.protocol === 'https:' || window.location.hostname.endsWith('vercel.app')) {
       return remoteUrl;
     }
     const hostname = window.location.hostname || 'localhost';
