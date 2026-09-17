@@ -217,6 +217,12 @@ function upsertCandle(c, bulk) {
   document.getElementById('s-bars').textContent = candleCount(cData);
 }
 
+function fitChartContent() {
+  if (!lwChart || !cSeries) return;
+  cSeries.priceScale().applyOptions({ autoScale: true });
+  lwChart.timeScale().fitContent();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // APPLY CANDLES FROM POSTGRESQL HISTORY
 // Called by applyHistoryData() in ui.js after receiving candle rows from server.
@@ -260,7 +266,7 @@ function _applyCandles(candles, label, preAggregated = false) {
   document.getElementById('s-bars').textContent = candleCount(cData);
 
   setTimeout(() => {
-    lwChart.timeScale().fitContent();
+    fitChartContent();
     requestAnimationFrame(() => AGBUB.draw());
   }, 100);
 
