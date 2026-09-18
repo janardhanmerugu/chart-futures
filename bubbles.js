@@ -16,7 +16,7 @@ const AGBUB = {
   hovered: null,
   prevVtt: null,     // last seen vtt for diff calculation
   prevTimeEpochMs: null, // last tick timestamp for gap detection
-  GAP_LIMIT_MS: 2000,
+  GAP_LIMIT_MS: 1000,
 
   mount() {
     const canvas = document.getElementById('agbub-canvas');
