@@ -55,7 +55,8 @@ function addHLine(price) {
     axisLabelVisible: true,
     title: '',
   });
-  hLines.push({ priceLine: pl, price });
+  hLines.push({ priceLine: pl, price, type: 'H-Line' });
+  updateSRLineCount();
 }
 
 function removeNearestHLine(clientY, rect) {
@@ -71,15 +72,85 @@ function removeNearestHLine(clientY, rect) {
   if (closest) {
     cSeries.removePriceLine(closest.priceLine);
     hLines.splice(idx, 1);
+    updateSRLineCount();
     return true;
   }
   return false;
 }
 
 function clearAllLines() {
-  if (!cSeries) return;
+  if (!cSeries) {
+    updateSRLineCount();
+    return;
+  }
   hLines.forEach(h => cSeries.removePriceLine(h.priceLine));
   hLines = [];
+  updateSRLineCount();
+}
+
+function addSupportLevel() {
+  addSRLevel('Support', 'support-price', '#00e676');
+}
+
+function addResistanceLevel() {
+  addSRLevel('Resistance', 'resistance-price', '#ff3d5a');
+}
+
+function addSRLevel(type, inputId, color) {
+  const input = document.getElementById(inputId);
+  const price = Number(input?.value);
+  if (!Number.isFinite(price) || price <= 0) {
+    showAlert('warn', `⚠ Enter a valid ${type.toLowerCase()} price.`);
+    input?.focus();
+    return;
+  }
+  if (!cSeries) {
+    showAlert('warn', '⚠ Load a chart before adding levels.');
+    return;
+  }
+  const priceLine = cSeries.createPriceLine({
+    price,
+    color,
+    lineWidth: 2,
+    lineStyle: 0,
+    axisLabelVisible: true,
+    title: type === 'Support' ? 'S' : 'R',
+  });
+  hLines.push({ priceLine, price, type });
+  input.value = '';
+  updateSRLineCount();
+}
+
+function updateSRLineCount() {
+  const count = document.getElementById('sr-line-count');
+  if (count) count.textContent = hLines.length;
+}
+
+function toggleRightDrawer() {
+  const drawer = document.getElementById('right-drawer');
+  const toggle = document.getElementById('right-drawer-toggle');
+  const open = drawer.classList.toggle('collapsed');
+  toggle.classList.toggle('collapsed', open);
+  toggle.textContent = open ? '‹' : '›';
+  setTimeout(() => {
+    if (lwChart) {
+      const con = document.getElementById('chart-con');
+      lwChart.resize(Math.max(con.clientWidth, 200), Math.max(con.clientHeight, 200));
+      if (typeof AGBUB !== 'undefined') AGBUB.draw();
+    }
+  }, 280);
+}
+
+function toggleRightPanel(panelId) {
+  const panel = document.getElementById(panelId);
+  const body = panel?.querySelector('.right-panel-body');
+  const title = panel?.querySelector('.right-panel-title');
+  if (!panel || !body || !title) return;
+  const collapsed = panel.classList.toggle('panel-collapsed');
+  title.setAttribute('aria-expanded', String(!collapsed));
+  body.hidden = collapsed;
+  const chevron = title.querySelector('.panel-chevron');
+  if (chevron) chevron.textContent = collapsed ? '+' : '−';
 }
 
 // ──── Token Management ────

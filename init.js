@@ -3,6 +3,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', () => {
+  const bubblePanel = document.getElementById('ag-circle-panel');
+  const bubbleBody = document.getElementById('futures-bubble-body');
+  const bubbleMetrics = document.getElementById('bubble-metrics');
+  if (bubblePanel && bubbleBody) bubbleBody.appendChild(bubblePanel);
+  if (bubbleMetrics && bubbleBody) bubbleBody.appendChild(bubbleMetrics);
+
   // Initialize history dates
   restoreActiveSubscriptionsState();
 

@@ -141,7 +141,7 @@
           <button class="ivbtn"        data-iv="1800" onclick="pickIv(1800)">30m</button>
         </div>
       </div>
-      <div class="sg">
+      <div class="sg" id="ag-circle-panel">
         <div class="sgl">⚡ Ag Circles</div>
         <div style="display:flex;gap:.65rem;align-items:center;font-size:.65rem;color:var(--text);margin-bottom:.35rem">
           <label style="display:flex;align-items:center;gap:.25rem;cursor:pointer">
@@ -232,22 +232,32 @@
       <div class="ti"><span class="tl">TPS</span>&nbsp;<span class="tv" id="s-tps">—</span></div>
       <div class="ti"><span class="tl">Last</span>&nbsp;<span class="tv" id="s-last">—</span></div>
       <div class="bar-sep"></div>
-      <span class="bc-label">⚡Min Lots</span>
-      <input type="number" id="bub-min-contracts" class="bc-num" min="1" step="1" value="25"
-        oninput="agbubMinContracts=Math.max(1,+this.value||1)*LOT_SIZE; AGBUB.draw()"/>
-      <span class="bc-label">Scale</span>
-      <input type="range" id="agbub-scale" class="bc-range" min="1" max="300" step="1" value="3"
-        oninput="agbubScale=+this.value; document.getElementById('agbub-scale-val').textContent=this.value; AGBUB.draw()"/>
-      <span id="agbub-scale-val" class="bc-val">3</span>
-      <span class="bc-label" title="Bubble size multiplier">×</span>
-      <input type="number" id="agbub-mult" class="bc-num" min="0.1" max="5" step="0.1" value="1.0"
-        style="width:36px"
-        oninput="agbubMultiplier=Math.max(0.1,+this.value||1); AGBUB.draw()"/>
-      <span class="bc-label">🔆</span>
-      <input type="range" id="agbub-opacity" class="bc-range" min="5" max="100" step="1" value="60"
-        oninput="agbubOpacity=+this.value/100; document.getElementById('agbub-opacity-val').textContent=this.value+'%'; AGBUB.draw()"/>
-      <span id="agbub-opacity-val" class="bc-val">60%</span>
-      <span id="bub-hover-info"></span>
+      <div id="bubble-metrics">
+        <div class="bubble-setting">
+          <span class="bc-label">⚡ Min Lots</span>
+          <input type="number" id="bub-min-contracts" class="bc-num" min="1" step="1" value="25"
+            oninput="agbubMinContracts=Math.max(1,+this.value||1)*LOT_SIZE; AGBUB.draw()"/>
+        </div>
+        <div class="bubble-setting">
+          <span class="bc-label">Scale</span>
+          <input type="range" id="agbub-scale" class="bc-range" min="1" max="300" step="1" value="3"
+            oninput="agbubScale=+this.value; document.getElementById('agbub-scale-val').textContent=this.value; AGBUB.draw()"/>
+          <span id="agbub-scale-val" class="bc-val">3</span>
+        </div>
+        <div class="bubble-setting">
+          <span class="bc-label">Multiplier</span>
+          <input type="number" id="agbub-mult" class="bc-num" min="0.1" max="5" step="0.1" value="1.0"
+            oninput="agbubMultiplier=Math.max(0.1,+this.value||1); AGBUB.draw()"/>
+          <span class="bc-label">×</span>
+        </div>
+        <div class="bubble-setting">
+          <span class="bc-label">🔆 Opacity</span>
+          <input type="range" id="agbub-opacity" class="bc-range" min="5" max="100" step="1" value="60"
+            oninput="agbubOpacity=+this.value/100; document.getElementById('agbub-opacity-val').textContent=this.value+'%'; AGBUB.draw()"/>
+          <span id="agbub-opacity-val" class="bc-val">60%</span>
+        </div>
+        <span id="bub-hover-info"></span>
+      </div>
     </div>
 
     <div id="alerts"></div>
@@ -270,6 +280,49 @@
     </div>
 
   </div><!-- /main-content -->
+
+  <!-- RIGHT DRAWER: futures bubbles and sticky support/resistance controls. -->
+  <aside id="right-drawer" class="collapsed">
+    <div id="right-drawer-top" title="Futures bubble controls">
+      <div id="right-drawer-title"><span>◉</span><span>FUTURES BUBBLES</span></div>
+    </div>
+    <div id="right-drawer-content">
+      <section class="right-panel" id="sr-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="sr-panel-body"
+          onclick="toggleRightPanel('sr-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('sr-panel')}">
+          <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">−</span>
+        </div>
+        <div class="right-panel-body" id="sr-panel-body">
+          <div class="sr-hint">Add price levels to the active chart.</div>
+          <div class="sr-level-row support-row">
+            <label for="support-price"><span class="level-dot"></span>Support</label>
+            <input id="support-price" class="sr-price-input" type="number" step="0.05" placeholder="Price"/>
+            <button class="sr-add-btn" type="button" onclick="addSupportLevel()" title="Add support level">+</button>
+          </div>
+          <div class="sr-level-row resistance-row">
+            <label for="resistance-price"><span class="level-dot"></span>Resistance</label>
+            <input id="resistance-price" class="sr-price-input" type="number" step="0.05" placeholder="Price"/>
+            <button class="sr-add-btn" type="button" onclick="addResistanceLevel()" title="Add resistance level">+</button>
+          </div>
+          <div class="sr-footer">
+            <span><strong id="sr-line-count">0</strong> active levels</span>
+            <button class="sr-clear-btn" type="button" onclick="clearAllLines()">Clear all</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="right-panel" id="futures-bubble-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="futures-bubble-body"
+          onclick="toggleRightPanel('futures-bubble-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('futures-bubble-panel')}">
+          <span><span class="right-panel-icon">◉</span> AG CIRCLES</span><span class="panel-chevron">−</span>
+        </div>
+        <div class="right-panel-body" id="futures-bubble-body"></div>
+      </section>
+    </div>
+  </aside>
+  <button id="right-drawer-toggle" class="collapsed" onclick="toggleRightDrawer()" title="Toggle futures bubble panel">‹</button>
 
 </div><!-- /app-shell -->
 
