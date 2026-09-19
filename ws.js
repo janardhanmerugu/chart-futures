@@ -154,6 +154,8 @@ function connectWS() {
     }
     else if (t === 'futures_data') { renderFutures(msg.data); }
     else if (t === 'futures_error') { onFuturesError(msg.message); }
+    else if (t === 'price_zones') { renderPriceZones(msg); }
+    else if (t === 'price_zones_error') { showAlert('err','⚠ '+msg.message,false); }
     else if (t === 'subscriptions') { renderActiveSubscriptions(msg.instruments); }
     else if (t === 'error') { showAlert('err','⚠ '+msg.message,false); }
     } catch(e) {

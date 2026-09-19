@@ -294,21 +294,20 @@
           <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">−</span>
         </div>
         <div class="right-panel-body" id="sr-panel-body">
-          <div class="sr-hint">Add price levels to the active chart.</div>
-          <div class="sr-level-row support-row">
-            <label for="support-price"><span class="level-dot"></span>Support</label>
-            <input id="support-price" class="sr-price-input" type="number" step="0.05" placeholder="Price"/>
-            <button class="sr-add-btn" type="button" onclick="addSupportLevel()" title="Add support level">+</button>
+          <div class="sr-hint">Server zones for the selected instrument, using the last 10 days.</div>
+          <div class="sr-threshold-row">
+            <label for="sr-volume-threshold">Minimum VTT lots</label>
+            <input id="sr-volume-threshold" class="sr-price-input" type="number" min="1" step="1" value="21"/>
+            <button id="sr-show-toggle" class="sr-add-btn sr-toggle-btn" type="button" onclick="togglePriceZoneLines()" title="Show selected zones on chart">Show</button>
+            <button class="sr-add-btn" type="button" onclick="loadPriceZones()" title="Load price zones">Load</button>
           </div>
-          <div class="sr-level-row resistance-row">
-            <label for="resistance-price"><span class="level-dot"></span>Resistance</label>
-            <input id="resistance-price" class="sr-price-input" type="number" step="0.05" placeholder="Price"/>
-            <button class="sr-add-btn" type="button" onclick="addResistanceLevel()" title="Add resistance level">+</button>
+          <div id="sr-zone-status" class="sr-zone-status">Select an instrument and load a chart.</div>
+          <div class="sr-zone-header">
+            <span>Price</span><span>VTT</span><span>Weight</span>
+            <input id="sr-zone-select-all" class="sr-zone-check" type="checkbox" checked
+              title="Select all price zones" aria-label="Select all price zones"/>
           </div>
-          <div class="sr-footer">
-            <span><strong id="sr-line-count">0</strong> active levels</span>
-            <button class="sr-clear-btn" type="button" onclick="clearAllLines()">Clear all</button>
-          </div>
+          <div id="sr-zone-list" class="sr-zone-list" aria-live="polite"></div>
         </div>
       </section>
 

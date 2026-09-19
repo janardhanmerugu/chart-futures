@@ -44,6 +44,9 @@ function toggleCrosshair() {
 
 // ──── Horizontal Lines ────
 let hLines = [];
+let priceZones = [];
+let priceZoneLines = [];
+let priceZonesVisible = false;
 
 function addHLine(price) {
   if (!cSeries) return;
@@ -94,6 +97,145 @@ function addSupportLevel() {
 
 function addResistanceLevel() {
   addSRLevel('Resistance', 'resistance-price', '#ff3d5a');
+}
+
+function loadPriceZones() {
+  const minimumVttLots = Number(document.getElementById('sr-volume-threshold')?.value);
+  const status = document.getElementById('sr-zone-status');
+  if (!selSym) {
+    if (status) status.textContent = 'Select an instrument and load a chart.';
+    return;
+  }
+  if (!Number.isInteger(minimumVttLots) || minimumVttLots < 1) {
+    showAlert('warn', '⚠ Enter a valid minimum VTT.');
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    if (status) status.textContent = 'Connect to the server first.';
+    return;
+  }
+  const threshold = minimumVttLots * LOT_SIZE;
+  if (status) status.textContent = 'Loading price zones…';
+  ws.send(JSON.stringify({
+    type: 'get_price_zones', instrument: selSym, volume_threshold: threshold,
+  }));
+}
+
+function renderPriceZones(message) {
+  const list = document.getElementById('sr-zone-list');
+  const status = document.getElementById('sr-zone-status');
+  if (!list || !status) return;
+  removePriceZoneLines();
+  priceZonesVisible = false;
+  const toggle = document.getElementById('sr-show-toggle');
+  if (toggle) toggle.textContent = 'Show';
+  list.textContent = '';
+  const zones = Array.isArray(message.zones) ? message.zones : [];
+  priceZones = zones.map(zone => ({...zone, selected: false}));
+  status.textContent = zones.length
+    ? `${zones.length} zones • ${message.instrument}`
+    : 'No high-volume price zones found.';
+  priceZones.forEach((zone) => {
+    const row = document.createElement('div');
+    row.className = 'sr-zone-row';
+    const price = document.createElement('strong');
+    price.textContent = Number(zone.price).toFixed(2);
+    const vtt = document.createElement('span');
+    vtt.textContent = Number(zone.total_vtt).toLocaleString('en-IN');
+    const weightage = document.createElement('span');
+    weightage.textContent = Number(zone.weightage).toLocaleString('en-IN');
+    const select = document.createElement('input');
+    select.type = 'checkbox';
+    select.className = 'sr-zone-check';
+    select.title = 'Select price zone';
+    select.setAttribute('aria-label', `Select price zone ${price.textContent}`);
+    select.addEventListener('change', () => {
+      zone.selected = select.checked;
+      row.classList.toggle('selected', select.checked);
+      updatePriceZoneSelectAll();
+      if (priceZonesVisible) {
+        removePriceZoneLines();
+        showSelectedPriceZoneLines();
+      }
+    });
+    row.append(price, vtt, weightage, select);
+    list.appendChild(row);
+  });
+  const selectAll = document.getElementById('sr-zone-select-all');
+  if (selectAll) {
+    selectAll.checked = true;
+    selectAll.onchange = () => setAllPriceZonesSelected(selectAll.checked);
+  }
+  setAllPriceZonesSelected(true);
+}
+
+function setAllPriceZonesSelected(selected) {
+  priceZones.forEach(zone => { zone.selected = selected; });
+  const selectAll = document.getElementById('sr-zone-select-all');
+  if (selectAll) {
+    selectAll.checked = selected;
+    selectAll.indeterminate = false;
+  }
+  document.querySelectorAll('#sr-zone-list .sr-zone-check').forEach(input => {
+    input.checked = selected;
+    input.closest('.sr-zone-row')?.classList.toggle('selected', selected);
+  });
+  if (priceZonesVisible) {
+    removePriceZoneLines();
+    showSelectedPriceZoneLines();
+  }
+}
+
+function updatePriceZoneSelectAll() {
+  const selectAll = document.getElementById('sr-zone-select-all');
+  if (!selectAll || !priceZones.length) return;
+  const selectedCount = priceZones.filter(zone => zone.selected).length;
+  selectAll.checked = selectedCount === priceZones.length;
+  selectAll.indeterminate = selectedCount > 0 && selectedCount < priceZones.length;
+}
+
+function removePriceZoneLines() {
+  priceZoneLines.forEach(line => cSeries?.removePriceLine(line.priceLine));
+  hLines = hLines.filter(line => !priceZoneLines.includes(line));
+  priceZoneLines = [];
+}
+
+function showSelectedPriceZoneLines() {
+  if (!cSeries) return;
+  priceZones.filter(zone => zone.selected).forEach(zone => {
+    const priceLine = cSeries.createPriceLine({
+      price: Number(zone.price),
+      color: '#ffe033cc',
+      lineWidth: 2,
+      lineStyle: 0,
+      axisLabelVisible: true,
+      title: 'Zone',
+    });
+    const line = {priceLine, price: Number(zone.price), type: 'Zone'};
+    priceZoneLines.push(line);
+    hLines.push(line);
+  });
+}
+
+function togglePriceZoneLines() {
+  const toggle = document.getElementById('sr-show-toggle');
+  if (priceZonesVisible) {
+    removePriceZoneLines();
+    priceZonesVisible = false;
+    if (toggle) toggle.textContent = 'Show';
+    return;
+  }
+  if (!cSeries) {
+    showAlert('warn', '⚠ Load a chart before showing price zones.');
+    return;
+  }
+  if (!priceZones.some(zone => zone.selected)) {
+    showAlert('warn', '⚠ Select at least one price zone.');
+    return;
+  }
+  showSelectedPriceZoneLines();
+  priceZonesVisible = true;
+  if (toggle) toggle.textContent = 'Hide';
 }
 
 function addSRLevel(type, inputId, color) {
