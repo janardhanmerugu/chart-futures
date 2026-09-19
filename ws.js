@@ -197,5 +197,5 @@ function disconnectWS(){
     clearTimeout(wsRetryTmr);
     wsRetryTmr = null;
   }
-  if(ws){ws.close();ws=null;}
+  if (ws) ws.close(1000, 'Client disconnected');
 }
