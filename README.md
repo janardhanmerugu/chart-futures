@@ -58,6 +58,26 @@ sudo systemctl status cloudflared
 
 Do not use `cloudflared tunnel --url`; that creates a temporary Quick Tunnel URL.
 
+### Deploying New Features
+
+Vercel deploys this repository's static frontend only. It does not deploy the
+WebSocket backend in `../cloud_server`. Features that add browser messages,
+such as `get_price_zones`, must be released in both repositories.
+
+On the Oracle VM, pull the backend production branch and restart the service:
+
+```bash
+cd /opt/upstox-chart
+git pull origin main
+sudo systemctl restart upstox-chart
+sudo systemctl status upstox-chart --no-pager
+```
+
+Then push the frontend changes to this repository and wait for Vercel to
+finish its deployment. Keep the frontend WebSocket URL set to
+`wss://socket.tradingcharts.win/ws`; that domain is the backend socket origin,
+not the Vercel chart URL.
+
 ## Troubleshooting
 
 - `Cannot connect` usually means `server.py` or `cloudflared` is not running.
