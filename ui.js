@@ -431,6 +431,11 @@ function loadSym() {
   if(!selSym){showAlert('warn','⚠ Select or type a symbol first.');return;}
   if(!tokSaved){showAlert('err','⚠ Save your Access Token first.');return;}
   if(!ws||ws.readyState!==WebSocket.OPEN){showAlert('err','⚠ Not connected. Click Connect.');return;}
+  const startDate = document.getElementById('chart-history-from').value;
+  const endDate = document.getElementById('chart-history-to').value;
+  if (!startDate || !endDate || startDate > endDate) {
+    showAlert('warn','⚠ Choose a valid chart history date range.'); return;
+  }
   clearAlerts();
   aggBucket = null;
   clearLastPriceLine();
@@ -440,9 +445,10 @@ function loadSym() {
     cData=[]; vData=[]; cMap={};
     cSeries.setData([]); vSeries.setData([]);
   }
-  showAlert('info', `Loading 7 days of ${ivLabel(selIv)} history…`, false);
+  showAlert('info', `Loading ${startDate} to ${endDate} ${ivLabel(selIv)} history…`, false);
   ws.send(JSON.stringify({
     type: 'load_symbol_history', instrument: selSym, interval: selIv,
+    start_date: startDate, end_date: endDate,
   }));
 }
 

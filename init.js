@@ -9,7 +9,16 @@ window.addEventListener('DOMContentLoaded', () => {
   if (bubblePanel && bubbleBody) bubbleBody.appendChild(bubblePanel);
   if (bubbleMetrics && bubbleBody) bubbleBody.appendChild(bubbleMetrics);
 
-  // Initialize history dates
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  const localDateValue = date => {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 10);
+  };
+  document.getElementById('chart-history-from').value = localDateValue(weekAgo);
+  document.getElementById('chart-history-to').value = localDateValue(today);
+
   restoreActiveSubscriptionsState();
 
   // ── Restore token from sessionStorage (survives refresh, clears on tab close) ──
