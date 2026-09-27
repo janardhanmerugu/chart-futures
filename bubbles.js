@@ -64,6 +64,8 @@ const AGBUB = {
     let type = null;
     if (bestAsk != null && ltp >= bestAsk) type = 'buy';
     else if (bestBid != null && ltp <= bestBid) type = 'sell';
+    else if (bestBid != null && bestAsk != null && ltp > bestBid && ltp < bestAsk)
+      type = 'neutral';
     if (!type) return;
 
     // Store raw UTC seconds — toXY will add IST_OFFSET_S to match chart coordinates
@@ -144,6 +146,7 @@ const AGBUB = {
       if (x + rr < 0 || x - rr > W || y + rr < 0 || y - rr > H) return;
 
       const isBuy = b.type === 'buy';
+      const isSell = b.type === 'sell';
       const op    = Math.min(agbubOpacity + (isHov ? 0.15 : 0), 1.0);
 
       // Flat filled circle
@@ -151,13 +154,17 @@ const AGBUB = {
       ctx.arc(x, y, rr, 0, Math.PI * 2);
       ctx.fillStyle = isBuy
         ? `rgba(255,224,51,${op})`
-        : `rgba(255,40,40,${op})`;
+        : isSell
+          ? `rgba(255,40,40,${op})`
+          : `rgba(160,174,192,${op})`;
       ctx.fill();
 
       // Thin border ring
       ctx.strokeStyle = isBuy
         ? `rgba(255,200,0,${Math.min(op + 0.15, 1.0)})`
-        : `rgba(220,0,0,${Math.min(op + 0.15, 1.0)})`;
+        : isSell
+          ? `rgba(220,0,0,${Math.min(op + 0.15, 1.0)})`
+          : `rgba(120,135,155,${Math.min(op + 0.15, 1.0)})`;
       ctx.lineWidth = isHov ? 2 : 1;
       ctx.stroke();
 
@@ -165,7 +172,11 @@ const AGBUB = {
       if (rr >= 12) {
         ctx.save();
         ctx.font         = `bold ${Math.max(Math.min(rr * 0.55, rr * 0.8), 11)}px "JetBrains Mono", monospace`;
-        ctx.fillStyle    = isBuy ? 'rgba(30,20,0,0.95)' : 'rgba(255,220,220,0.95)';
+        ctx.fillStyle    = isBuy
+          ? 'rgba(30,20,0,0.95)'
+          : isSell
+            ? 'rgba(255,220,220,0.95)'
+            : 'rgba(20,28,38,0.95)';
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(b.lots >= 1000 ? (b.lots/1000).toFixed(1)+'K' : String(b.lots), x, y);
@@ -217,17 +228,19 @@ const AGBUB = {
 
     title.innerHTML = isBuy
       ? `<span style="color:var(--yellow)">⚡ Aggressive BUY (LTP ≥ Ask)</span>`
-      : `<span style="color:#ff4444">⚡ Aggressive SELL (LTP ≤ Bid)</span>`;
+      : b.type === 'sell'
+        ? `<span style="color:#ff4444">⚡ Aggressive SELL (LTP ≤ Bid)</span>`
+        : `<span style="color:#a0aec0">• Neutral (inside spread)</span>`;
     body.innerHTML =
       `Time &nbsp;&nbsp;&nbsp;: ${tstr}<br>` +
       `LTP &nbsp;&nbsp;&nbsp;&nbsp;: ${fN(b.ltp)}<br>` +
       `Lots &nbsp;&nbsp;&nbsp;&nbsp;: <b style="color:${isBuy?'var(--yellow)':'#ff4444'}">${b.lots}</b> lots (${b.contracts} contracts)<br>` +
-      `Type &nbsp;&nbsp;&nbsp;: ${isBuy ? '🟡 Buy Aggressor' : '🔴 Sell Aggressor'}`;
+      `Type &nbsp;&nbsp;&nbsp;: ${isBuy ? '🟡 Buy Aggressor' : b.type === 'sell' ? '🔴 Sell Aggressor' : '⚪ Neutral'}`;
     document.getElementById('bub-hover-info').textContent =
-      `⚡ ${tstr} · ${isBuy ? 'Buy' : 'Sell'} · LTP ${fN(b.ltp)} · ${b.lots} lots`;
+      `⚡ ${tstr} · ${isBuy ? 'Buy' : b.type === 'sell' ? 'Sell' : 'Neutral'} · LTP ${fN(b.ltp)} · ${b.lots} lots`;
 
     tip.style.display     = 'block';
-    tip.style.borderColor = isBuy ? 'var(--yellow)' : '#ff4444';
+    tip.style.borderColor = isBuy ? 'var(--yellow)' : b.type === 'sell' ? '#ff4444' : '#a0aec0';
     let tx = e.clientX + 14, ty = e.clientY - 20;
     if (tx + 240 > window.innerWidth)  tx = e.clientX - 250;
     if (ty + 130 > window.innerHeight) ty = e.clientY - 135;
