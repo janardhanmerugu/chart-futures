@@ -110,6 +110,12 @@ function loadPriceZones() {
     showAlert('warn', '⚠ Enter a valid minimum VTT.');
     return;
   }
+  const startDate = document.getElementById('sr-date-from')?.value;
+  const endDate = document.getElementById('sr-date-to')?.value;
+  if (!startDate || !endDate || startDate > endDate) {
+    showAlert('warn', '⚠ Choose a valid support/resistance date range.');
+    return;
+  }
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     if (status) status.textContent = 'Connect to the server first.';
     return;
@@ -118,6 +124,7 @@ function loadPriceZones() {
   if (status) status.textContent = 'Loading price zones…';
   ws.send(JSON.stringify({
     type: 'get_price_zones', instrument: selSym, volume_threshold: threshold,
+    start_date: startDate, end_date: endDate,
   }));
 }
 
@@ -132,8 +139,11 @@ function renderPriceZones(message) {
   list.textContent = '';
   const zones = Array.isArray(message.zones) ? message.zones : [];
   priceZones = zones.map(zone => ({...zone, selected: false}));
+  const dateRange = message.start_date && message.end_date
+    ? `${message.start_date} to ${message.end_date}`
+    : 'last 10 days';
   status.textContent = zones.length
-    ? `${zones.length} zones • ${message.instrument}`
+    ? `${zones.length} zones • ${message.instrument} • ${dateRange}`
     : 'No high-volume price zones found.';
   priceZones.forEach((zone) => {
     const row = document.createElement('div');
@@ -202,11 +212,13 @@ function removePriceZoneLines() {
 
 function showSelectedPriceZoneLines() {
   if (!cSeries) return;
+  const maxWeight = Math.max(1, ...priceZones.map(zone => Number(zone.weightage) || 0));
   priceZones.filter(zone => zone.selected).forEach(zone => {
+    const weight = Math.max(0, Number(zone.weightage) || 0);
     const priceLine = cSeries.createPriceLine({
       price: Number(zone.price),
       color: '#ffe033cc',
-      lineWidth: 2,
+      lineWidth: Math.max(1, Math.ceil((weight / maxWeight) * 4)),
       lineStyle: 0,
       axisLabelVisible: true,
       title: 'Zone',

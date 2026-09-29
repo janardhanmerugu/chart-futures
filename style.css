@@ -88,6 +88,9 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .bubble-setting .bc-val{justify-self:end;min-width:34px;text-align:right;color:var(--accent);font-size:.6rem}
 #bubble-metrics #bub-hover-info{margin:.05rem 0 0;color:var(--accent);font-size:.59rem;min-height:14px;text-align:right}
 .sr-hint{font-size:.59rem;color:var(--muted);line-height:1.45}
+.sr-date-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem}
+.sr-date-range label{display:flex;flex-direction:column;gap:.25rem;color:var(--muted);font-size:.55rem}
+.sr-date-range input{font-size:.58rem;color-scheme:dark}
 .sr-level-row{display:grid;grid-template-columns:minmax(0,1fr) 78px 28px;align-items:center;gap:.35rem;padding:.42rem .45rem;border:1px solid #1b2b42;border-radius:6px;background:#09111d}
 .sr-level-row label{display:flex;align-items:center;gap:.35rem;font-size:.61rem;color:var(--text);white-space:nowrap}
 .level-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}

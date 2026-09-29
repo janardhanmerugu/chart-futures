@@ -18,6 +18,10 @@ window.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('chart-history-from').value = localDateValue(weekAgo);
   document.getElementById('chart-history-to').value = localDateValue(today);
+  const tenDaysAgo = new Date(today);
+  tenDaysAgo.setDate(today.getDate() - 9);
+  document.getElementById('sr-date-from').value = localDateValue(tenDaysAgo);
+  document.getElementById('sr-date-to').value = localDateValue(today);
 
   restoreActiveSubscriptionsState();
 

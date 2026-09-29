@@ -301,7 +301,11 @@
           <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">−</span>
         </div>
         <div class="right-panel-body" id="sr-panel-body">
-          <div class="sr-hint">Server zones for the selected instrument, using the last 10 days.</div>
+          <div class="sr-hint">Select a date range. Defaults to the last 10 days.</div>
+          <div class="sr-date-range">
+            <label for="sr-date-from">From<input id="sr-date-from" class="sr-price-input" type="date"/></label>
+            <label for="sr-date-to">To<input id="sr-date-to" class="sr-price-input" type="date"/></label>
+          </div>
           <div class="sr-threshold-row">
             <label for="sr-volume-threshold">Minimum VTT lots</label>
             <input id="sr-volume-threshold" class="sr-price-input" type="number" min="1" step="1" value="21"/>
