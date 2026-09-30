@@ -5,8 +5,9 @@
   --text:#e2eaf5;--muted:#5a7a9a;--card:#131f2e;--warn:#ffb300;
   --yellow:#ffe033;--yellow-dark:#b8860b;
 }
-body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#app-shell{display:flex;flex:1;min-height:0;overflow:hidden;position:relative}
+html,body{height:100%;min-height:100%;}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+#app-shell{display:flex;flex:1;min-height:0;overflow:hidden;position:relative;padding-bottom:env(safe-area-inset-bottom,0px)}
 
 /* ── SIDE DRAWER ── */
 #side-drawer{
@@ -364,8 +365,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 }
 
 @media (max-width: 760px) {
-  body{touch-action:manipulation}
-  #app-shell{position:relative}
+  body{touch-action:manipulation;padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 10px)}
+  #app-shell{position:relative;padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 10px)}
   #side-drawer{
     position:absolute;top:0;left:0;bottom:0;
     width:min(82vw,280px);min-width:min(82vw,280px);max-width:min(82vw,280px);
