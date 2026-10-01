@@ -138,7 +138,10 @@ function renderPriceZones(message) {
   if (toggle) toggle.textContent = 'Show';
   list.textContent = '';
   const zones = Array.isArray(message.zones) ? message.zones : [];
-  priceZones = zones.map(zone => ({...zone, selected: false}));
+  priceZones = zones.map(zone => ({...zone, selected: false})).sort((a, b) =>
+    (Number(b.weightage) || 0) - (Number(a.weightage) || 0) ||
+    (Number(b.total_vtt) || 0) - (Number(a.total_vtt) || 0)
+  );
   const dateRange = message.start_date && message.end_date
     ? `${message.start_date} to ${message.end_date}`
     : 'last 10 days';
@@ -151,7 +154,7 @@ function renderPriceZones(message) {
     const price = document.createElement('strong');
     price.textContent = Number(zone.price).toFixed(2);
     const vtt = document.createElement('span');
-    vtt.textContent = Number(zone.total_vtt).toLocaleString('en-IN');
+    vtt.textContent = (Number(zone.total_vtt) / LOT_SIZE).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     const weightage = document.createElement('span');
     weightage.textContent = Number(zone.weightage).toLocaleString('en-IN');
     const select = document.createElement('input');
