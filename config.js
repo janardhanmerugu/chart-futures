@@ -57,7 +57,7 @@ let tickCnt=0, tpsTmr=null, candlesOn=true, bubOn=true;
 let _atRealTime = true;  // tracks if user is at the live edge; false = user has dragged away
 let LOT_SIZE      = 65;           // contracts per lot — editable from sidebar
 let agbubMinContracts = 25 * LOT_SIZE; // minimum contracts to show a bubble (25 lots)
-let agbubScale        = 3;    // radius scale factor (from slider)
+let agbubScale        = 1;    // radius scale factor (from slider)
 let agbubOpacity      = 0.60; // circle fill opacity (from slider)
 let agbubMaxRadius    = 20;   // hard cap on bubble radius (px) — editable from sidebar
 let agbubMultiplier   = 1.0;  // master size multiplier (0.1–5.0) — side of scale slider
