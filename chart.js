@@ -6,6 +6,7 @@ function initCharts() {
   document.getElementById('placeholder').style.display='none';
   if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
   cData=[]; vData=[]; cMap={};
+  resetChartTimeMapping();
   _atRealTime = true;
 
   // Upstox sends TRUE Unix epoch seconds (UTC-based).
@@ -17,14 +18,32 @@ function initCharts() {
     grid:            {vertLines:{color:'#1a2535'}, horzLines:{color:'#1a2535'}},
     timeScale:       {borderColor:'#1e2d42', timeVisible:true, secondsVisible:true,
                       shiftVisibleRangeOnNewBar: false,
-                      lockVisibleTimeRangeOnResize: true},
+                      lockVisibleTimeRangeOnResize: true,
+                      tickMarkFormatter: (time, tickMarkType) => {
+                        const date = new Date(originalChartTime(time) * 1000);
+                        const year = date.getUTCFullYear();
+                        const month = date.getUTCMonth();
+                        const day = date.getUTCDate();
+                        const hour = String(date.getUTCHours()).padStart(2, '0');
+                        const minute = String(date.getUTCMinutes()).padStart(2, '0');
+                        const second = String(date.getUTCSeconds()).padStart(2, '0');
+                        const markTypes = LightweightCharts.TickMarkType || {};
+                        if (tickMarkType === markTypes.Year || tickMarkType === 0) return String(year);
+                        if (tickMarkType === markTypes.Month || tickMarkType === 1)
+                          return date.toLocaleString('en-US', {month:'short', timeZone:'UTC'});
+                        if (tickMarkType === markTypes.DayOfMonth || tickMarkType === 2)
+                          return `${day} ${date.toLocaleString('en-US', {month:'short', timeZone:'UTC'})}`;
+                        return tickMarkType === markTypes.TimeWithSeconds || tickMarkType === 4
+                          ? `${hour}:${minute}:${second}`
+                          : `${hour}:${minute}`;
+                      }},
     rightPriceScale: {borderColor:'#1e2d42'},
     crosshair:       {mode:0},
     localization: {
       timeFormatter: (ts) => {
         // ts is already IST-shifted (we added +19800s when feeding data in)
         // so just read as UTC to get the correct IST wall-clock display
-        const d = new Date(ts * 1000);
+        const d = new Date(originalChartTime(ts) * 1000);
         const hh = String(d.getUTCHours()).padStart(2,'0');
         const mm = String(d.getUTCMinutes()).padStart(2,'0');
         const ss = String(d.getUTCSeconds()).padStart(2,'0');
@@ -154,6 +173,63 @@ function chartIntervalSeconds() {
   return Math.max(1, Number(selIv) || 1);
 }
 
+let chartTimeSegments = [];
+
+function resetChartTimeMapping() {
+  chartTimeSegments = [];
+}
+
+function chartDateKey(timestamp) {
+  const date = new Date(timestamp * 1000);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function mapChartTime(timestamp, trackCandle = false) {
+  const dateKey = chartDateKey(timestamp);
+  let segment = chartTimeSegments.find(item => item.date === dateKey);
+  if (!segment) {
+    const previous = chartTimeSegments[chartTimeSegments.length - 1];
+    const offset = previous?.lastCandleTime != null
+      ? previous.lastCandleTime + chartIntervalSeconds() - timestamp
+      : 0;
+    segment = {date: dateKey, offset, firstChartTime: null, lastChartTime: null, lastCandleTime: null};
+    chartTimeSegments.push(segment);
+  }
+
+  const chartTime = timestamp + segment.offset;
+  if (trackCandle) {
+    if (segment.firstChartTime == null || chartTime < segment.firstChartTime)
+      segment.firstChartTime = chartTime;
+    if (segment.lastChartTime == null || chartTime > segment.lastChartTime)
+      segment.lastChartTime = chartTime;
+    if (segment.lastCandleTime == null || chartTime > segment.lastCandleTime)
+      segment.lastCandleTime = chartTime;
+  }
+  return chartTime;
+}
+
+function originalChartTime(time) {
+  const timestamp = typeof time === 'number'
+    ? time
+    : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+  let closest = null;
+  let closestDistance = Infinity;
+  for (const segment of chartTimeSegments) {
+    if (segment.firstChartTime == null || segment.lastChartTime == null) continue;
+    if (timestamp >= segment.firstChartTime && timestamp <= segment.lastChartTime)
+      return timestamp - segment.offset;
+    const distance = Math.min(
+      Math.abs(timestamp - segment.firstChartTime),
+      Math.abs(timestamp - segment.lastChartTime),
+    );
+    if (distance < closestDistance) {
+      closest = segment;
+      closestDistance = distance;
+    }
+  }
+  return closest ? timestamp - closest.offset : timestamp;
+}
+
 function addWhitespacePoint(time, candles, volumes, map) {
   if (map[time] !== undefined) return;
   map[time] = candles.length;
@@ -168,10 +244,14 @@ function isMarketSessionTime(time) {
   return day >= 1 && day <= 5 && minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30;
 }
 
-function addMissingPoints(lastTime, nextTime, candles, volumes, map) {
+function addMissingPoints(lastTime, nextTime, lastSourceTime, nextSourceTime, candles, volumes, map) {
   const interval = chartIntervalSeconds();
   for (let time = lastTime + interval; time < nextTime; time += interval) {
-    if (isMarketSessionTime(time)) addWhitespacePoint(time, candles, volumes, map);
+    const sourceTime = lastSourceTime + (time - lastTime);
+    if (chartDateKey(sourceTime) === chartDateKey(nextSourceTime) &&
+        isMarketSessionTime(sourceTime)) {
+      addWhitespacePoint(time, candles, volumes, map);
+    }
   }
 }
 
@@ -186,13 +266,21 @@ function candleCount(data) {
 // ─────────────────────────────────────────────────────────────────────────────
 function upsertCandle(c, bulk) {
   if(!cSeries) return;
-  const t  = c.time + IST_OFFSET_S;   // shift to IST so LW axis shows correct time
+  const sourceTime = c.time + IST_OFFSET_S;
+  const dateSegment = chartTimeSegments.find(item => item.date === chartDateKey(sourceTime));
+  const lastSourceTime = dateSegment?.lastSourceTime;
+  const t = mapChartTime(sourceTime, true);
+  const currentSegment = chartTimeSegments.find(item => item.date === chartDateKey(sourceTime));
+  if (currentSegment) currentSegment.lastSourceTime = sourceTime;
   const cd = {time:t, open:c.open, high:c.high, low:c.low, close:c.close};
   const vd = {time:t, value:c.volume, color: c.close>=c.open ? '#00e67644':'#ff3d5a44'};
   const lastTime = cData[cData.length - 1]?.time;
   if (lastTime != null && t > lastTime + chartIntervalSeconds()) {
     const gapCandles = [], gapVolumes = [], gapMap = {};
-    addMissingPoints(lastTime, t, gapCandles, gapVolumes, gapMap);
+    addMissingPoints(
+      lastTime, t, lastSourceTime ?? sourceTime - (t - lastTime), sourceTime,
+      gapCandles, gapVolumes, gapMap,
+    );
     gapCandles.forEach((blank, index) => {
       cMap[blank.time] = cData.length;
       cData.push(blank);
@@ -241,22 +329,26 @@ function _applyCandles(candles, label, preAggregated = false) {
 
   // Reset all state
   cData=[]; vData=[]; cMap={};
+  resetChartTimeMapping();
   AGBUB.clear(); aggBucket = null;
 
   // History requested at the selected interval is already aggregated by the server.
   const aggCData = [], aggVData = [], aggMap = {};
   let lastTime = null;
+  let lastSourceTime = null;
   candles.forEach(c => {
     const agg = preAggregated ? c : aggCandle(c);
-    const t   = agg.time + IST_OFFSET_S;
+    const sourceTime = agg.time + IST_OFFSET_S;
+    const t = mapChartTime(sourceTime, true);
     const cd  = {time:t, open:agg.open, high:agg.high, low:agg.low, close:agg.close};
     const vd  = {time:t, value:agg.volume, color: agg.close>=agg.open ? '#00e67644':'#ff3d5a44'};
     if (lastTime != null && t > lastTime + chartIntervalSeconds()) {
-      addMissingPoints(lastTime, t, aggCData, aggVData, aggMap);
+      addMissingPoints(lastTime, t, lastSourceTime, sourceTime, aggCData, aggVData, aggMap);
     }
     if (aggMap[t] !== undefined) { aggCData[aggMap[t]]=cd; aggVData[aggMap[t]]=vd; }
     else { aggMap[t]=aggCData.length; aggCData.push(cd); aggVData.push(vd); }
     if (lastTime == null || t > lastTime) lastTime = t;
+    lastSourceTime = sourceTime;
   });
 
   // Single setData call — fast and correct

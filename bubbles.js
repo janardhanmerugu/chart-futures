@@ -86,10 +86,11 @@ const AGBUB = {
   toXY(timeSec, price) {
     if (!lwChart || !cSeries) return null;
     try {
-      // Snap tick time to the same bucket interval the chart uses,
-      // then add IST_OFFSET_S because upsertCandle shifts all times by +19800s
+      // Snap tick time to the chart bucket and use the chart's compressed session timeline.
       const bucketIv = [60, 300, 900, 1800].includes(selIv) ? selIv : 5;
-      const chartT = Math.floor(timeSec / bucketIv) * bucketIv + IST_OFFSET_S;
+      const chartT = mapChartTime(
+        Math.floor(timeSec / bucketIv) * bucketIv + IST_OFFSET_S,
+      );
       const x = lwChart.timeScale().timeToCoordinate(chartT);
       const y = cSeries.priceToCoordinate(price);
       if (x == null || y == null) return null;
