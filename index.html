@@ -239,6 +239,11 @@
       <div class="ti"><span class="tl">TPS</span>&nbsp;<span class="tv" id="s-tps">—</span></div>
       <div class="ti"><span class="tl">Last</span>&nbsp;<span class="tv" id="s-last">—</span></div>
       <div class="bar-sep"></div>
+      <div id="volume-profile-controls">
+        <button class="vp-btn" id="vp-range-btn" type="button" onclick="VP.startSelection()">Volume Profile</button>
+        <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
+        <span id="vp-status" aria-live="polite">Drag across chart to select a range</span>
+      </div>
       <div id="bubble-metrics">
         <div class="bubble-setting">
           <span class="bc-label">⚡ Min Lots</span>
@@ -283,6 +288,7 @@
           </p>
         </div>
         <canvas id="agbub-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;"></canvas>
+        <canvas id="vp-canvas" aria-label="Volume profile overlay"></canvas>
       </div>
     </div>
 
@@ -346,6 +352,7 @@
 <script src="config.js?v=20260917-3"></script>
 <script src="bubbles.js?v=20260917-3"></script>
 <script src="chart.js?v=20260917-3"></script>
+<script src="volume-profile.js?v=20261011-1"></script>
 <script src="ui.js?v=20260917-3"></script>
 <script src="ws.js?v=20260917-3"></script>
 <script src="init.js?v=20260917-3"></script>

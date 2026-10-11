@@ -89,6 +89,7 @@ function initCharts() {
   // Also detect if user manually scrolled away from live edge
   lwChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
     AGBUB.draw();
+    VP.draw();
   });
 
   // Redraw bubbles on price scale change (vertical zoom)
@@ -112,7 +113,7 @@ function initCharts() {
         const h  = Math.floor(el.clientHeight);
         if (el.id === 'chart-con' && lwChart) lwChart.resize(Math.max(w,200), Math.max(h,100));
       }
-      AGBUB.sync(); AGBUB.draw();
+      AGBUB.sync(); AGBUB.draw(); VP.draw();
     });
     wrap._ro.observe(con);
   }
@@ -359,7 +360,7 @@ function _applyCandles(candles, label, preAggregated = false) {
 
   setTimeout(() => {
     fitChartContent();
-    requestAnimationFrame(() => AGBUB.draw());
+    requestAnimationFrame(() => { AGBUB.draw(); VP.draw(); });
   }, 100);
 
   const last = candles[candles.length-1];

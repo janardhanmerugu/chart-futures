@@ -131,6 +131,7 @@ function connectWS() {
     }
     else if (t === 'tick') {
       if (!lwChart && !initCharts()) return;
+      VP.addLiveTick(msg);
       updateLTP(msg.ltp);
       document.getElementById('s-last').textContent = fT(msg.ltt);
       if (msg.ltp != null && msg.vtt != null && msg.ltt != null) {
