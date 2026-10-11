@@ -94,7 +94,7 @@ function initCharts() {
 
   // Redraw bubbles on price scale change (vertical zoom)
   lwChart.priceScale('right').applyOptions({});
-  lwChart.subscribeCrosshairMove(() => AGBUB.draw());
+  lwChart.subscribeCrosshairMove(() => { AGBUB.draw(); VP.draw(); });
 
   // Mount bubble overlay canvas
   AGBUB.mount();

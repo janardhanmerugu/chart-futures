@@ -1,7 +1,7 @@
 const VP = (() => {
   const MAX_TICKS = 250000;
   const VALUE_AREA_FRACTION = 0.70;
-  const BASE_PRICE_STEP = 0.05;
+  const DEFAULT_TICK_SIZE = 0.05;
   let canvas = null;
   let ctx = null;
   let ticks = [];
@@ -19,6 +19,23 @@ const VP = (() => {
 
   function tickIdentity(timestamp, volume, price) {
     return `${timestamp}:${volume ?? ''}:${price}`;
+  }
+
+  function exactPriceLevel(price) {
+    return Number(price.toFixed(6));
+  }
+
+  function priceTickSize(prices) {
+    const values = [...new Set(prices.map(price => Math.round(price * 1e6)))].sort((a, b) => a - b);
+    let increment = 0;
+    for (let index = 1; index < values.length; index++) {
+      let difference = values[index] - values[index - 1];
+      while (difference) {
+        [increment, difference] = [difference, increment % difference];
+      }
+    }
+    const inferred = increment / 1e6;
+    return inferred > 0 && inferred <= DEFAULT_TICK_SIZE ? inferred : DEFAULT_TICK_SIZE;
   }
 
   function addTick(timestamp, price, contracts, vtt) {
@@ -47,8 +64,7 @@ const VP = (() => {
     }
 
     if (profile && timestamp >= profile.start && timestamp <= profile.end) {
-      const index = Math.round((price - profile.basePrice) / profile.step);
-      const level = profile.basePrice + index * profile.step;
+      const level = exactPriceLevel(price);
       profile.levels.set(level, (profile.levels.get(level) || 0) + volume);
       profile.tickCount++;
       updateProfileSummary(profile);
@@ -91,20 +107,10 @@ const VP = (() => {
     const selected = ticks.filter(tick => tick.time >= start && tick.time <= end);
     if (!selected.length) return null;
 
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
-    for (const tick of selected) {
-      minPrice = Math.min(minPrice, tick.price);
-      maxPrice = Math.max(maxPrice, tick.price);
-    }
-    const step = Math.max(
-      BASE_PRICE_STEP,
-      Math.ceil((maxPrice - minPrice) / 120 / BASE_PRICE_STEP) * BASE_PRICE_STEP,
-    );
+    const step = priceTickSize(selected.map(tick => tick.price));
     const levels = new Map();
     for (const tick of selected) {
-      const index = Math.round((tick.price - minPrice) / step);
-      const level = minPrice + index * step;
+      const level = exactPriceLevel(tick.price);
       levels.set(level, (levels.get(level) || 0) + tick.volume);
     }
 
@@ -112,7 +118,6 @@ const VP = (() => {
       start,
       end,
       levels,
-      basePrice: minPrice,
       step,
       tickCount: selected.length,
       rows: [...levels]
@@ -220,13 +225,16 @@ const VP = (() => {
     return Math.max(0, Math.min(rect.width, event.clientX - rect.left));
   }
 
-  function sourceTimeAt(x) {
+  function chartTimeAt(x) {
     if (!lwChart) return null;
     const time = lwChart.timeScale().coordinateToTime(x);
     if (time == null) return null;
-    const chartTime = typeof time === 'number'
+    return typeof time === 'number'
       ? time
       : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+  }
+
+  function sourceTimeAt(chartTime) {
     return originalChartTime(chartTime) - IST_OFFSET_S;
   }
 
@@ -248,8 +256,10 @@ const VP = (() => {
   function finishDrag(event) {
     if (dragStart == null) return;
     dragCurrent = pointerX(event);
-    const first = sourceTimeAt(Math.min(dragStart, dragCurrent));
-    const last = sourceTimeAt(Math.max(dragStart, dragCurrent));
+    const chartStart = chartTimeAt(Math.min(dragStart, dragCurrent));
+    const chartEnd = chartTimeAt(Math.max(dragStart, dragCurrent));
+    const first = chartStart == null ? null : sourceTimeAt(chartStart);
+    const last = chartEnd == null ? null : sourceTimeAt(chartEnd);
     dragStart = null;
     dragCurrent = null;
     selectionMode = false;
@@ -267,6 +277,8 @@ const VP = (() => {
       draw();
       return;
     }
+    profile.chartStart = chartStart;
+    profile.chartEnd = chartEnd;
     updateStatus();
     draw();
   }
@@ -287,9 +299,17 @@ const VP = (() => {
     if (!profile || !lwChart || !cSeries || !ctx) return;
     const scale = window.devicePixelRatio || 1;
     const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
-    const profileWidth = Math.min(150, plotRight * 0.3);
-    const barRight = plotRight - 8;
-    const barLeft = barRight - profileWidth;
+    const startChartTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
+    const endChartTime = profile.chartEnd ?? mapChartTime(profile.end + IST_OFFSET_S);
+    const startX = lwChart.timeScale().timeToCoordinate(startChartTime);
+    const endX = lwChart.timeScale().timeToCoordinate(endChartTime);
+    if (startX == null || endX == null) return;
+    const rangeLeft = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
+    const rangeRight = Math.max(0, Math.min(plotRight, Math.max(startX, endX)));
+    const profileWidth = Math.min(150, (rangeRight - rangeLeft) * 0.3);
+    if (profileWidth < 1) return;
+    const barLeft = rangeLeft;
+    const barRight = barLeft + profileWidth;
     const yTop = 0;
     const yBottom = canvas.clientHeight - 22;
 
@@ -303,7 +323,7 @@ const VP = (() => {
       const inValueArea = row.price >= profile.valueAreaLow &&
         row.price <= profile.valueAreaHigh;
       ctx.fillStyle = inValueArea ? 'rgba(0, 212, 255, 0.24)' : 'rgba(90, 122, 154, 0.18)';
-      ctx.fillRect(barRight - width, y - height / 2, width, height);
+      ctx.fillRect(barLeft, y - height / 2, width, height);
     }
 
     for (const price of [profile.valueAreaLow, profile.valueAreaHigh]) {
@@ -327,10 +347,10 @@ const VP = (() => {
       ctx.lineTo(barRight, pocY);
       ctx.stroke();
       ctx.font = '600 11px "JetBrains Mono", monospace';
-      ctx.textAlign = 'right';
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#ffe033';
-      ctx.fillText(`POC ${formatPrice(profile.poc)}`, barRight - 3, pocY - 2);
+      ctx.fillText(`POC ${formatPrice(profile.poc)}`, barLeft + 3, pocY - 2);
     }
   }
 

@@ -37,10 +37,10 @@ Then click **Connect** and authenticate with a valid Upstox token.
 ## Volume Profile
 
 Load a chart history range, click **Volume Profile**, then drag across the
-chart to select the time range. The chart draws volume-at-price bars and shows
-the point of control (POC); the highlighted bars indicate the 70% value area.
-The profile uses stored tick-volume changes grouped at 0.05 price increments,
-and incorporates new live ticks while the selection includes them. Its
+chart to select the time range. The chart draws volume-at-price bars at each
+exact traded price level and shows the point of control (POC); the highlighted
+bars indicate the 70% value area. It incorporates new live ticks while the
+selection includes them. Its
 historical coverage is limited to the ticks returned by the server's
 `MAX_HISTORY_TICKS` setting.
 

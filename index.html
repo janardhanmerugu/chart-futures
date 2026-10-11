@@ -6,7 +6,7 @@
   <title>Upstox Futures Chart</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=20260917-3">
+  <link rel="stylesheet" href="style.css?v=20261011-2">
 </head>
 <body>
 
@@ -239,11 +239,6 @@
       <div class="ti"><span class="tl">TPS</span>&nbsp;<span class="tv" id="s-tps">—</span></div>
       <div class="ti"><span class="tl">Last</span>&nbsp;<span class="tv" id="s-last">—</span></div>
       <div class="bar-sep"></div>
-      <div id="volume-profile-controls">
-        <button class="vp-btn" id="vp-range-btn" type="button" onclick="VP.startSelection()">Volume Profile</button>
-        <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
-        <span id="vp-status" aria-live="polite">Drag across chart to select a range</span>
-      </div>
       <div id="bubble-metrics">
         <div class="bubble-setting">
           <span class="bc-label">⚡ Min Lots</span>
@@ -300,6 +295,21 @@
       <div id="right-drawer-title"><span>◉</span><span>FUTURES BUBBLES</span></div>
     </div>
     <div id="right-drawer-content">
+      <section class="right-panel" id="volume-profile-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="volume-profile-body"
+          onclick="toggleRightPanel('volume-profile-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('volume-profile-panel')}">
+          <span><span class="right-panel-icon">▥</span> VOLUME PROFILE</span><span class="panel-chevron">−</span>
+        </div>
+        <div class="right-panel-body" id="volume-profile-body">
+          <div id="volume-profile-controls">
+            <button class="vp-btn" id="vp-range-btn" type="button" onclick="VP.startSelection()">Select Range</button>
+            <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
+          </div>
+          <span id="vp-status" aria-live="polite">Drag across chart to select a range</span>
+        </div>
+      </section>
+
       <section class="right-panel" id="sr-panel">
         <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="sr-panel-body"
           onclick="toggleRightPanel('sr-panel')"
@@ -351,10 +361,10 @@
 <script src="lightweight-loader.js?v=20260917-3"></script>
 <script src="config.js?v=20260917-3"></script>
 <script src="bubbles.js?v=20260917-3"></script>
-<script src="chart.js?v=20260917-3"></script>
-<script src="volume-profile.js?v=20261011-1"></script>
-<script src="ui.js?v=20260917-3"></script>
-<script src="ws.js?v=20260917-3"></script>
-<script src="init.js?v=20260917-3"></script>
+<script src="chart.js?v=20261011-2"></script>
+<script src="volume-profile.js?v=20261011-3"></script>
+<script src="ui.js?v=20261011-2"></script>
+<script src="ws.js?v=20261011-2"></script>
+<script src="init.js?v=20261011-2"></script>
 </body>
 </html>
