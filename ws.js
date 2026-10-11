@@ -80,6 +80,7 @@ function connectWS() {
     else if (t === 'switching') {
       clearAlerts();
       if (!lwChart && !initCharts()) return;
+      VP.setInstrument(msg.symbol);
       if (historyReadyForSubscribe) {
         historyReadyForSubscribe = false;
       } else {
@@ -125,13 +126,13 @@ function connectWS() {
       if (!lwChart && !initCharts()) return;
       const chartCandle = msg.candle;
       upsertCandle(chartCandle, false);
+      VP.draw();
       updateTicker(chartCandle, msg.instrument);
       if (_atRealTime) lwChart.timeScale().scrollToRealTime();
       requestAnimationFrame(() => AGBUB.draw());
     }
     else if (t === 'tick') {
       if (!lwChart && !initCharts()) return;
-      VP.addLiveTick(msg);
       updateLTP(msg.ltp);
       document.getElementById('s-last').textContent = fT(msg.ltt);
       if (msg.ltp != null && msg.vtt != null && msg.ltt != null) {
@@ -142,6 +143,7 @@ function connectWS() {
       if (msg.current_candle) {
         const chartCandle = msg.current_candle;
         upsertCandle(chartCandle, false);
+        VP.draw();
         updateTicker(chartCandle, msg.instrument);
       }
       requestAnimationFrame(() => AGBUB.draw());
@@ -150,6 +152,8 @@ function connectWS() {
       renderSavedList(msg.datasets);
     }
     else if (t === 'history_data') { applyHistoryData(msg); }
+    else if (t === 'volume_profile_data') { VP.receiveProfileData(msg); }
+    else if (t === 'volume_profile_error') { VP.receiveProfileError(msg); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

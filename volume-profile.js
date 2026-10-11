@@ -1,25 +1,19 @@
 const VP = (() => {
-  const MAX_TICKS = 250000;
   const VALUE_AREA_FRACTION = 0.70;
   const DEFAULT_TICK_SIZE = 0.05;
+  const DEFAULT_GROUPING = 1;
+  const DEFAULT_PROFILE_WIDTH = 150;
   let canvas = null;
   let ctx = null;
-  let ticks = [];
-  let seen = new Set();
-  let previousVolumeByDay = new Map();
   let selectionMode = false;
   let dragStart = null;
   let dragCurrent = null;
-  let profile = null;
-
-  function dateKey(timestamp) {
-    const date = new Date(timestamp * 1000 + IST_OFFSET_MS);
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  function tickIdentity(timestamp, volume, price) {
-    return `${timestamp}:${volume ?? ''}:${price}`;
-  }
+  let profiles = [];
+  let grouping = DEFAULT_GROUPING;
+  let profileWidth = DEFAULT_PROFILE_WIDTH;
+  let instrumentKey = null;
+  let nextRequestId = 1;
+  const pendingRequests = new Map();
 
   function exactPriceLevel(price) {
     return Number(price.toFixed(6));
@@ -38,94 +32,105 @@ const VP = (() => {
     return inferred > 0 && inferred <= DEFAULT_TICK_SIZE ? inferred : DEFAULT_TICK_SIZE;
   }
 
-  function addTick(timestamp, price, contracts, vtt) {
-    if (!Number.isFinite(timestamp) || !Number.isFinite(price) || price <= 0) return;
-    const key = dateKey(timestamp);
-    let volume = Number(contracts);
-    if (!Number.isFinite(volume)) {
-      const currentVtt = Number(vtt);
-      const previous = previousVolumeByDay.get(key);
-      volume = Number.isFinite(currentVtt) && previous != null && currentVtt >= previous
-        ? currentVtt - previous
-        : 0;
-    }
-
-    const currentVtt = Number(vtt);
-    if (Number.isFinite(currentVtt)) previousVolumeByDay.set(key, currentVtt);
-    if (volume <= 0) return;
-
-    const identity = tickIdentity(timestamp, Number.isFinite(currentVtt) ? currentVtt : volume, price);
-    if (seen.has(identity)) return;
-    seen.add(identity);
-    ticks.push({time: timestamp, price, volume, identity});
-    if (ticks.length > MAX_TICKS) {
-      const removed = ticks.shift();
-      seen.delete(removed.identity);
-    }
-
-    if (profile && timestamp >= profile.start && timestamp <= profile.end) {
-      const level = exactPriceLevel(price);
-      profile.levels.set(level, (profile.levels.get(level) || 0) + volume);
-      profile.tickCount++;
-      updateProfileSummary(profile);
-      updateStatus();
-      draw();
-    }
-  }
-
-  function setTicks(historyTicks) {
-    ticks = [];
-    seen = new Set();
-    previousVolumeByDay = new Map();
-    profile = null;
+  function reset() {
+    profiles = [];
+    pendingRequests.clear();
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
-
-    for (const tick of historyTicks || []) {
-      const timestamp = Number(tick.timestamp) / 1000;
-      const price = Number(tick.ltp);
-      const contracts = tick.contracts == null ? NaN : Number(tick.contracts);
-      addTick(timestamp, price, contracts, tick.vtt);
-    }
     updateStatus();
     updateSelectionMode();
     draw();
   }
 
-  function addLiveTick(message) {
-    if (!message || message.ltt == null) return;
-    addTick(
-      Number(message.ltt) / 1000,
-      Number(message.ltp),
-      NaN,
-      message.vtt,
-    );
+  function setInstrument(value) {
+    const nextInstrumentKey = typeof value === 'string' ? value.trim() : '';
+    if (instrumentKey === nextInstrumentKey) return;
+    instrumentKey = nextInstrumentKey || null;
+    reset();
   }
 
-  function buildProfile(start, end) {
-    const selected = ticks.filter(tick => tick.time >= start && tick.time <= end);
-    if (!selected.length) return null;
-
-    const step = priceTickSize(selected.map(tick => tick.price));
+  function buildProfile(start, end, rawLevels, tickCount) {
+    if (!rawLevels.length) return null;
+    const step = priceTickSize(rawLevels.map(level => level.price)) * grouping;
     const levels = new Map();
-    for (const tick of selected) {
-      const level = exactPriceLevel(tick.price);
-      levels.set(level, (levels.get(level) || 0) + tick.volume);
+    for (const item of rawLevels) {
+      const level = groupedPriceLevel(item.price, step);
+      levels.set(level, (levels.get(level) || 0) + item.volume);
     }
 
     const result = {
       start,
       end,
+      rawLevels,
       levels,
       step,
-      tickCount: selected.length,
+      tickCount,
       rows: [...levels]
         .map(([price, volume]) => ({price, volume}))
         .sort((a, b) => a.price - b.price),
     };
     updateProfileSummary(result);
     return result;
+  }
+
+  function requestProfile(start, end, chartStart, chartEnd) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      updateStatus('Cannot load profile: server is disconnected');
+      return;
+    }
+    const requestId = String(nextRequestId++);
+    pendingRequests.set(requestId, {chartStart, chartEnd});
+    updateStatus('Loading selected range from historical tick data…');
+    ws.send(JSON.stringify({
+      type: 'load_volume_profile',
+      request_id: requestId,
+      instrument: instrumentKey,
+      start_time_ms: Math.floor(start * 1000),
+      end_time_ms: Math.ceil(end * 1000),
+    }));
+  }
+
+  function receiveProfileData(message) {
+    const pending = pendingRequests.get(String(message.request_id));
+    if (!pending) return;
+    pendingRequests.delete(String(message.request_id));
+    if (message.instrument !== instrumentKey) return;
+
+    const levels = Array.isArray(message.levels)
+      ? message.levels.map(level => ({
+        price: Number(level.price),
+        volume: Number(level.volume),
+      })).filter(level =>
+        Number.isFinite(level.price) && level.price > 0 &&
+        Number.isFinite(level.volume) && level.volume > 0)
+      : [];
+    const profile = buildProfile(
+      Number(message.start_time_ms) / 1000,
+      Number(message.end_time_ms) / 1000,
+      levels,
+      Number(message.tick_count) || 0,
+    );
+    if (!profile) {
+      updateStatus('No historical tick-volume data in selected range');
+      return;
+    }
+    profile.chartStart = pending.chartStart;
+    profile.chartEnd = pending.chartEnd;
+    profiles.push(profile);
+    updateStatus();
+    draw();
+  }
+
+  function receiveProfileError(message) {
+    const requestId = String(message.request_id);
+    if (!pendingRequests.has(requestId)) return;
+    pendingRequests.delete(requestId);
+    updateStatus(`Volume profile failed: ${message.message || 'server error'}`);
+  }
+
+  function groupedPriceLevel(price, step) {
+    return exactPriceLevel(Math.round(price / step) * step);
   }
 
   function updateProfileSummary(result) {
@@ -193,18 +198,24 @@ const VP = (() => {
       status.title = message;
       return;
     }
-    if (!profile) {
-      status.textContent = selectionMode
-        ? 'Drag across chart to select a range'
-        : 'Drag across chart to select a range';
+    if (selectionMode) {
+      status.textContent = 'Drag across chart to select a range';
       status.title = status.textContent;
       return;
     }
+    if (!profiles.length) {
+      status.textContent = 'Drag across chart to select a range';
+      status.title = status.textContent;
+      return;
+    }
+    const profile = profiles[profiles.length - 1];
     status.textContent =
+      `${profiles.length} profile${profiles.length === 1 ? '' : 's'} · ` +
       `${formatDateTime(profile.start)}–${formatDateTime(profile.end)} · ` +
       `POC ${formatPrice(profile.poc)} · Vol ${formatVolume(profile.totalVolume)}`;
     status.title =
-      `${profile.tickCount.toLocaleString('en-IN')} trades · ` +
+      `${profiles.length} profile${profiles.length === 1 ? '' : 's'} · ` +
+      `${profile.tickCount.toLocaleString('en-IN')} tick updates · ` +
       `POC ${formatPrice(profile.poc)} · ` +
       `VA ${formatPrice(profile.valueAreaLow)}–${formatPrice(profile.valueAreaHigh)} · ` +
       `Volume ${formatVolume(profile.totalVolume)}`;
@@ -265,38 +276,65 @@ const VP = (() => {
     selectionMode = false;
     updateSelectionMode();
 
-    if (first == null || last == null || ticks.length === 0) {
-      profile = null;
-      updateStatus(ticks.length ? 'Could not read selected chart range' : 'No tick-volume data loaded');
+    if (first == null || last == null) {
+      updateStatus('Could not read selected chart range');
       draw();
       return;
     }
-    profile = buildProfile(Math.min(first, last), Math.max(first, last));
-    if (!profile) {
-      updateStatus('No tick-volume data in selected range');
-      draw();
-      return;
+    requestProfile(Math.min(first, last), Math.max(first, last), chartStart, chartEnd);
+  }
+
+  function drawRangeRectangle(startX, endX, chartStart, chartEnd, preview = false) {
+    if (!ctx || !cSeries) return;
+    const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
+    const left = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
+    const right = Math.max(0, Math.min(plotRight, Math.max(startX, endX)));
+    const width = right - left;
+    if (width < 1) return;
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    for (const candle of cData) {
+      if (candle.open == null || candle.time < chartStart || candle.time > chartEnd) continue;
+      minPrice = Math.min(minPrice, candle.low);
+      maxPrice = Math.max(maxPrice, candle.high);
     }
-    profile.chartStart = chartStart;
-    profile.chartEnd = chartEnd;
-    updateStatus();
-    draw();
+    if (!Number.isFinite(minPrice) || !Number.isFinite(maxPrice)) return;
+    const plotBottom = canvas.clientHeight - 22;
+    const highY = cSeries.priceToCoordinate(maxPrice);
+    const lowY = cSeries.priceToCoordinate(minPrice);
+    if (highY == null || lowY == null) return;
+    const top = Math.max(0, Math.min(plotBottom, highY));
+    const bottom = Math.max(0, Math.min(plotBottom, lowY));
+    if (bottom - top < 1) return;
+    ctx.fillStyle = preview ? 'rgba(0, 212, 255, 0.10)' : 'rgba(0, 212, 255, 0.045)';
+    ctx.fillRect(left, top, width, bottom - top);
+    ctx.strokeStyle = preview ? 'rgba(0, 212, 255, 0.9)' : 'rgba(0, 212, 255, 0.55)';
+    ctx.lineWidth = preview ? 1.5 : 1;
+    ctx.setLineDash(preview ? [5, 4] : []);
+    ctx.strokeRect(left, top, width, bottom - top);
+    ctx.setLineDash([]);
+  }
+
+  function drawSavedRange(profile) {
+    if (!lwChart) return;
+    const startChartTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
+    const endChartTime = profile.chartEnd ?? mapChartTime(profile.end + IST_OFFSET_S);
+    const startX = lwChart.timeScale().timeToCoordinate(startChartTime);
+    const endX = lwChart.timeScale().timeToCoordinate(endChartTime);
+    if (startX == null || endX == null) return;
+    drawRangeRectangle(startX, endX, startChartTime, endChartTime);
   }
 
   function drawSelection() {
     if (dragStart == null || dragCurrent == null || !ctx) return;
-    const left = Math.min(dragStart, dragCurrent);
-    const width = Math.abs(dragCurrent - dragStart);
-    ctx.fillStyle = 'rgba(0, 212, 255, 0.10)';
-    ctx.fillRect(left, 0, width, canvas.height);
-    ctx.strokeStyle = 'rgba(0, 212, 255, 0.85)';
-    ctx.setLineDash([5, 4]);
-    ctx.strokeRect(left, 0, width, canvas.height);
-    ctx.setLineDash([]);
+    const startChartTime = chartTimeAt(Math.min(dragStart, dragCurrent));
+    const endChartTime = chartTimeAt(Math.max(dragStart, dragCurrent));
+    if (startChartTime == null || endChartTime == null) return;
+    drawRangeRectangle(dragStart, dragCurrent, startChartTime, endChartTime, true);
   }
 
-  function drawProfile() {
-    if (!profile || !lwChart || !cSeries || !ctx) return;
+  function drawProfile(profile) {
+    if (!lwChart || !cSeries || !ctx) return;
     const scale = window.devicePixelRatio || 1;
     const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
     const startChartTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
@@ -306,10 +344,10 @@ const VP = (() => {
     if (startX == null || endX == null) return;
     const rangeLeft = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
     const rangeRight = Math.max(0, Math.min(plotRight, Math.max(startX, endX)));
-    const profileWidth = Math.min(150, (rangeRight - rangeLeft) * 0.3);
-    if (profileWidth < 1) return;
+    const drawnProfileWidth = Math.min(profileWidth, rangeRight - rangeLeft);
+    if (drawnProfileWidth < 1) return;
     const barLeft = rangeLeft;
-    const barRight = barLeft + profileWidth;
+    const barRight = barLeft + drawnProfileWidth;
     const yTop = 0;
     const yBottom = canvas.clientHeight - 22;
 
@@ -318,11 +356,11 @@ const VP = (() => {
       const yAbove = cSeries.priceToCoordinate(row.price + profile.step / 2);
       const yBelow = cSeries.priceToCoordinate(row.price - profile.step / 2);
       if (y == null || y < yTop - 2 || y > yBottom + 2) continue;
-      const height = Math.max(1, Math.abs((yBelow ?? y) - (yAbove ?? y)));
-      const width = Math.max(1, profileWidth * row.volume / profile.maxVolume);
+      const height = Math.max(3, Math.abs((yBelow ?? y) - (yAbove ?? y)));
+      const width = Math.max(1, drawnProfileWidth * row.volume / profile.maxVolume);
       const inValueArea = row.price >= profile.valueAreaLow &&
         row.price <= profile.valueAreaHigh;
-      ctx.fillStyle = inValueArea ? 'rgba(0, 212, 255, 0.24)' : 'rgba(90, 122, 154, 0.18)';
+      ctx.fillStyle = inValueArea ? 'rgba(255, 145, 0, 0.92)' : 'rgba(66, 165, 245, 0.88)';
       ctx.fillRect(barLeft, y - height / 2, width, height);
     }
 
@@ -330,8 +368,8 @@ const VP = (() => {
       if (price === profile.poc) continue;
       const y = cSeries.priceToCoordinate(price);
       if (y == null || y < yTop || y > yBottom) continue;
-      ctx.strokeStyle = 'rgba(0, 230, 118, 0.75)';
-      ctx.lineWidth = Math.max(1, scale);
+      ctx.strokeStyle = 'rgba(255, 183, 77, 0.95)';
+      ctx.lineWidth = Math.max(1.5, scale);
       ctx.beginPath();
       ctx.moveTo(barLeft, y);
       ctx.lineTo(barRight, y);
@@ -340,8 +378,8 @@ const VP = (() => {
 
     const pocY = cSeries.priceToCoordinate(profile.poc);
     if (pocY != null && pocY >= yTop && pocY <= yBottom) {
-      ctx.strokeStyle = 'rgba(255, 224, 51, 0.95)';
-      ctx.lineWidth = Math.max(1, scale);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+      ctx.lineWidth = Math.max(2, scale * 1.5);
       ctx.beginPath();
       ctx.moveTo(barLeft, pocY);
       ctx.lineTo(barRight, pocY);
@@ -349,7 +387,7 @@ const VP = (() => {
       ctx.font = '600 11px "JetBrains Mono", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillStyle = '#ffe033';
+      ctx.fillStyle = '#ffffff';
       ctx.fillText(`POC ${formatPrice(profile.poc)}`, barLeft + 3, pocY - 2);
     }
   }
@@ -366,7 +404,8 @@ const VP = (() => {
     }
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    drawProfile();
+    profiles.forEach(drawSavedRange);
+    profiles.forEach(drawProfile);
     drawSelection();
   }
 
@@ -377,14 +416,14 @@ const VP = (() => {
     }
     setLiveMode(false);
     selectionMode = true;
-    profile = null;
     updateSelectionMode();
     updateStatus();
     draw();
   }
 
   function clear() {
-    profile = null;
+    profiles = [];
+    pendingRequests.clear();
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
@@ -393,10 +432,47 @@ const VP = (() => {
     draw();
   }
 
+  function setGrouping(value) {
+    const nextGrouping = Number(value);
+    if (![1, 2, 5, 10].includes(nextGrouping)) return;
+    grouping = nextGrouping;
+    if (profiles.length) {
+      profiles = profiles.map(profile => {
+        const updated = buildProfile(
+          profile.start,
+          profile.end,
+          profile.rawLevels,
+          profile.tickCount,
+        );
+        if (updated) {
+          updated.chartStart = profile.chartStart;
+          updated.chartEnd = profile.chartEnd;
+        }
+        return updated;
+      }).filter(Boolean);
+      updateStatus(profiles.length ? null : 'No tick-volume data in selected ranges');
+    }
+    draw();
+  }
+
+  function setWidth(value) {
+    const nextWidth = Number(value);
+    if (!Number.isFinite(nextWidth)) return;
+    profileWidth = Math.max(60, Math.min(280, nextWidth));
+    const output = document.getElementById('vp-width-value');
+    if (output) output.textContent = `${profileWidth} px`;
+    draw();
+  }
+
   function init() {
     canvas = document.getElementById('vp-canvas');
     if (!canvas) return;
     ctx = canvas.getContext('2d');
+    const groupingInput = document.getElementById('vp-grouping');
+    if (groupingInput) groupingInput.value = String(grouping);
+    const widthInput = document.getElementById('vp-width');
+    if (widthInput) widthInput.value = String(profileWidth);
+    setWidth(profileWidth);
     canvas.addEventListener('pointerdown', beginDrag);
     canvas.addEventListener('pointermove', moveDrag);
     canvas.addEventListener('pointerup', finishDrag);
@@ -405,7 +481,10 @@ const VP = (() => {
     draw();
   }
 
-  return {init, setTicks, addLiveTick, startSelection, clear, draw};
+  return {
+    init, reset, setInstrument, receiveProfileData, receiveProfileError,
+    startSelection, clear, draw, setGrouping, setWidth,
+  };
 })();
 
 window.addEventListener('DOMContentLoaded', VP.init);

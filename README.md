@@ -36,13 +36,17 @@ Then click **Connect** and authenticate with a valid Upstox token.
 
 ## Volume Profile
 
-Load a chart history range, click **Volume Profile**, then drag across the
-chart to select the time range. The chart draws volume-at-price bars at each
-exact traded price level and shows the point of control (POC); the highlighted
-bars indicate the 70% value area. It incorporates new live ticks while the
-selection includes them. Its
-historical coverage is limited to the ticks returned by the server's
-`MAX_HISTORY_TICKS` setting.
+Load chart history, click **Volume Profile**, then drag across the chart to
+select a time range. The selected instrument and exact range timestamps are
+sent to the server, which calculates price-level volume from persisted ticks.
+The browser draws those historical levels; live ticks do not change an
+existing or new profile. The chart shows the point of control (POC), and the
+highlighted bars indicate the 70% value area. Each range remains marked by a
+shaded rectangle bounded vertically by the selected candles' low and high.
+Use **Price grouping** to show 1, 2, 5, or 10 minimum price increments per
+row, and **Profile width** to adjust the overlay width. If a selected range
+contains more than the server's `MAX_HISTORY_TICKS` limit, the server reports
+an error rather than returning a partial profile.
 
 ## Oracle Cloud Deployment
 

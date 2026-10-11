@@ -490,8 +490,8 @@ function loadSym() {
   clearLastPriceLine();
   applyLotSizeForSelection(selSym);
   historyReadyForSubscribe = false;
-  VP.setTicks([]);
-  VP.clear();
+  VP.setInstrument(selSym);
+  VP.reset();
   if (lwChart) {
     cData=[]; vData=[]; cMap={};
     cSeries.setData([]); vSeries.setData([]);
@@ -647,7 +647,8 @@ function applyHistoryData(msg) {
   const ticks   = msg.ticks || [];
   const label   = msg.label   || msg.instrument || '?';
 
-  VP.setTicks(ticks);
+  VP.setInstrument(msg.instrument);
+  VP.reset();
   if (candles.length > 0) {
     clearAlerts();
     _applyCandles(candles, label);
@@ -667,7 +668,8 @@ function applySymbolHistory(msg) {
   const ticks = msg.ticks || [];
   const label = msg.instrument || selSym || '?';
   aggBucket = null;
-  VP.setTicks(ticks);
+  VP.setInstrument(msg.instrument);
+  VP.reset();
   if (candles.length) {
     _applyCandles(candles, label, true);
     ticks.forEach(t => AGBUB.push(
