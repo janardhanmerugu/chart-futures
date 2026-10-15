@@ -293,6 +293,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .ti:has(#t-v)   { min-width:70px  }   /* Vol 65        */
 /* Delta: needs room for sign + double-digit % e.g. "+1,234.50 (99.99%)" */
 .ti:has(#t-chg) { min-width:168px }
+.ti:has(#t-rat) { min-width:86px }
 
 #live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums}
 .bar-sep{width:1px;height:14px;background:var(--border);flex-shrink:0}

@@ -2,6 +2,13 @@
 
 Frontend for the Upstox futures chart. It connects to the WebSocket server in `../cloud_server`.
 
+## Local Project Directories
+
+- Server workspace: `D:\upstox-chart`
+- Server code project: `D:\upstox-chart\cloud_server`
+- Options web page: `D:\upstox-chart\upstox-chart-options`
+- Futures web page: `D:\upstox-chart\chart-futures`
+
 ## Start the Local Server
 
 Open PowerShell in `../cloud_server` and run:

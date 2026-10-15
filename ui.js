@@ -593,6 +593,8 @@ function updateTicker(c, sym) {
   const chg=c.close-c.open, pct=((chg/c.open)*100).toFixed(2);
   const el=document.getElementById('t-chg');
   el.textContent=`${chg>=0?'+':''}${fN(chg)} (${pct}%)`; el.className='tv '+(chg>=0?'up':'dn');
+  const ratioEl=document.getElementById('t-rat');
+  if(ratioEl) ratioEl.textContent=c.volume>0?(Math.abs(chg)*1000/c.volume).toFixed(4)+'×10⁻³':'—';
 }
 
 // ──── PostgreSQL history loader for saved datasets ────
