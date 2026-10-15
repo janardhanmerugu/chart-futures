@@ -6,7 +6,7 @@
   <title>Upstox Futures Chart</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=20261014-1">
+  <link rel="stylesheet" href="style.css?v=20261015-3">
 </head>
 <body>
 
@@ -196,18 +196,6 @@
         </div>
       </div>
       <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
-      <div id="active-subscriptions" aria-live="polite">
-        <div class="active-subscriptions-head">
-          <button class="active-subscriptions-toggle" id="active-subscriptions-toggle" onclick="toggleActiveSubscriptions()" aria-expanded="true" aria-controls="active-subscription-list">
-            <span class="active-subscriptions-chevron" aria-hidden="true">⌄</span>
-            <span class="active-subscriptions-title">● Active Upstox subscriptions <strong id="active-subscription-count">0</strong></span>
-          </button>
-          <button class="unsubscribe-all-btn" id="unsubscribe-all-btn" onclick="unsubscribeAll()" disabled>Unsubscribe all</button>
-        </div>
-        <div id="active-subscription-list">
-          <div class="active-subscription-empty">No active instruments</div>
-        </div>
-      </div>
     </div>
 
   </div><!-- /side-drawer -->
@@ -332,7 +320,7 @@
           <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">−</span>
         </div>
         <div class="right-panel-body" id="sr-panel-body">
-          <div class="sr-hint">Select a date range. Defaults to the last 10 days.</div>
+          <div class="sr-hint">Select a date range. Defaults to the last day.</div>
           <div class="sr-date-range">
             <label for="sr-date-from">From<input id="sr-date-from" class="sr-price-input" type="date"/></label>
             <label for="sr-date-to">To<input id="sr-date-to" class="sr-price-input" type="date"/></label>
@@ -361,6 +349,22 @@
         </div>
         <div class="right-panel-body" id="futures-bubble-body"></div>
       </section>
+
+      <section class="right-panel" id="active-subscriptions-panel">
+        <button class="right-panel-title" id="active-subscriptions-toggle" role="button" tabindex="0"
+          aria-expanded="true" aria-controls="active-subscriptions-panel-body"
+          onclick="toggleRightPanel('active-subscriptions-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('active-subscriptions-panel')}">
+          <span><span class="right-panel-icon">●</span> ACTIVE SUBSCRIPTIONS <strong id="active-subscription-count">0</strong></span>
+          <span class="panel-chevron">−</span>
+        </button>
+        <div class="right-panel-body" id="active-subscriptions-panel-body" aria-live="polite">
+          <button class="unsubscribe-all-btn" id="unsubscribe-all-btn" onclick="unsubscribeAll()" disabled>Unsubscribe all</button>
+          <div id="active-subscription-list">
+            <div class="active-subscription-empty">No active instruments</div>
+          </div>
+        </div>
+      </section>
     </div>
   </aside>
   <button id="right-drawer-toggle" class="collapsed" onclick="toggleRightDrawer()" title="Toggle futures bubble panel">‹</button>
@@ -378,8 +382,8 @@
 <script src="bubbles.js?v=20260917-3"></script>
 <script src="chart.js?v=20261011-2"></script>
 <script src="volume-profile.js?v=20261011-12"></script>
-<script src="ui.js?v=20261014-1"></script>
-<script src="ws.js?v=20261011-3"></script>
-<script src="init.js?v=20261011-2"></script>
+<script src="ui.js?v=20261015-2"></script>
+<script src="ws.js?v=20261015-2"></script>
+<script src="init.js?v=20261015-2"></script>
 </body>
 </html>

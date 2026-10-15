@@ -144,7 +144,7 @@ function renderPriceZones(message) {
   );
   const dateRange = message.start_date && message.end_date
     ? `${message.start_date} to ${message.end_date}`
-    : 'last 10 days';
+    : 'last day';
   status.textContent = zones.length
     ? `${zones.length} zones • ${message.instrument} • ${dateRange}`
     : 'No high-volume price zones found.';
@@ -342,6 +342,9 @@ function toggleRightPanel(panelId) {
   body.hidden = collapsed;
   const chevron = title.querySelector('.panel-chevron');
   if (chevron) chevron.textContent = collapsed ? '+' : '−';
+  if (panelId === 'active-subscriptions-panel') {
+    sessionStorage.setItem('active_subscriptions_collapsed', String(collapsed));
+  }
 }
 
 // ──── Token Management ────
@@ -503,12 +506,15 @@ function loadSym() {
   }));
 }
 
+let activeSubscriptions = [];
+
 function renderActiveSubscriptions(instruments) {
   const list = document.getElementById('active-subscription-list');
   const count = document.getElementById('active-subscription-count');
   const button = document.getElementById('unsubscribe-all-btn');
   if (!list || !count) return;
-  const active = Array.isArray(instruments) ? instruments : [];
+  activeSubscriptions = Array.isArray(instruments) ? instruments.slice() : [];
+  const active = activeSubscriptions;
   count.textContent = active.length;
   if (button) button.disabled = active.length === 0 || !ws || ws.readyState !== WebSocket.OPEN;
   list.textContent = '';
@@ -525,34 +531,48 @@ function renderActiveSubscriptions(instruments) {
     const name = typeof instrument === 'string' ? instrument : instrument.name;
     const key = typeof instrument === 'string' ? instrument : instrument.key;
     item.title = key;
-    item.innerHTML = '<span class="active-subscription-dot"></span>';
+    const dot = document.createElement('span');
+    dot.className = 'active-subscription-dot';
     const label = document.createElement('span');
+    label.className = 'active-subscription-name';
     label.textContent = name;
-    item.appendChild(label);
+    const unsubscribe = document.createElement('button');
+    unsubscribe.type = 'button';
+    unsubscribe.className = 'active-subscription-unsubscribe';
+    unsubscribe.textContent = 'Unsubscribe';
+    unsubscribe.setAttribute('aria-label', `Unsubscribe ${name}`);
+    unsubscribe.disabled = !ws || ws.readyState !== WebSocket.OPEN;
+    unsubscribe.addEventListener('click', () => unsubscribeInstrument(key));
+    item.append(dot, label, unsubscribe);
     list.appendChild(item);
   });
 }
 
-function toggleActiveSubscriptions() {
-  const panel = document.getElementById('active-subscriptions');
-  const toggle = document.getElementById('active-subscriptions-toggle');
-  const list = document.getElementById('active-subscription-list');
-  if (!panel || !toggle || !list) return;
-  const collapsed = panel.classList.toggle('collapsed');
-  toggle.setAttribute('aria-expanded', String(!collapsed));
-  list.hidden = collapsed;
-  sessionStorage.setItem('active_subscriptions_collapsed', String(collapsed));
+function unsubscribeInstrument(instrumentKey) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showAlert('warn', '⚠ Connect to the server to unsubscribe this instrument.');
+    return;
+  }
+  ws.send(JSON.stringify({type: 'unsubscribe', symbol: instrumentKey}));
+}
+
+function removeActiveSubscription(instrumentKey) {
+  renderActiveSubscriptions(activeSubscriptions.filter(instrument =>
+    (typeof instrument === 'string' ? instrument : instrument.key) !== instrumentKey
+  ));
 }
 
 function restoreActiveSubscriptionsState() {
-  const panel = document.getElementById('active-subscriptions');
+  const panel = document.getElementById('active-subscriptions-panel');
   const toggle = document.getElementById('active-subscriptions-toggle');
-  const list = document.getElementById('active-subscription-list');
-  if (!panel || !toggle || !list) return;
+  const body = document.getElementById('active-subscriptions-panel-body');
+  if (!panel || !toggle || !body) return;
   const collapsed = sessionStorage.getItem('active_subscriptions_collapsed') === 'true';
-  panel.classList.toggle('collapsed', collapsed);
+  panel.classList.toggle('panel-collapsed', collapsed);
   toggle.setAttribute('aria-expanded', String(!collapsed));
-  list.hidden = collapsed;
+  body.hidden = collapsed;
+  const chevron = toggle.querySelector('.panel-chevron');
+  if (chevron) chevron.textContent = collapsed ? '+' : '−';
 }
 
 function unsubscribeAll() {

@@ -10,17 +10,15 @@ window.addEventListener('DOMContentLoaded', () => {
   if (bubbleMetrics && bubbleBody) bubbleBody.appendChild(bubbleMetrics);
 
   const today = new Date();
-  const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 7);
+  const oneDayAgo = new Date(today);
+  oneDayAgo.setDate(today.getDate() - 1);
   const localDateValue = date => {
     const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return localDate.toISOString().slice(0, 10);
   };
-  document.getElementById('chart-history-from').value = localDateValue(weekAgo);
+  document.getElementById('chart-history-from').value = localDateValue(oneDayAgo);
   document.getElementById('chart-history-to').value = localDateValue(today);
-  const tenDaysAgo = new Date(today);
-  tenDaysAgo.setDate(today.getDate() - 9);
-  document.getElementById('sr-date-from').value = localDateValue(tenDaysAgo);
+  document.getElementById('sr-date-from').value = localDateValue(oneDayAgo);
   document.getElementById('sr-date-to').value = localDateValue(today);
 
   restoreActiveSubscriptionsState();
