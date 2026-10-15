@@ -101,10 +101,10 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 #right-drawer-toggle.collapsed{right:0}
 .right-panel{border:1px solid #1c2c43;border-radius:9px;background:linear-gradient(180deg,#0d1725 0%,#0a121e 100%);box-shadow:0 4px 12px #00000018;overflow:hidden}
 .right-panel:not(.panel-collapsed){border-color:#00d4ff55;box-shadow:0 5px 16px #0000002b,0 0 0 1px #00d4ff0d}
-.right-panel-title{display:flex;align-items:center;justify-content:space-between;min-height:2.35rem;padding:.65rem .75rem;color:var(--muted);font-size:.59rem;font-weight:700;letter-spacing:.1em;cursor:pointer;outline:none;user-select:none}
+.right-panel-title{display:flex;align-items:center;justify-content:space-between;min-height:2.35rem;padding:.65rem .75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.59rem;font-weight:700;letter-spacing:.1em;line-height:normal;cursor:pointer;outline:none;user-select:none;background:transparent;border:none;border-radius:0;text-align:left;width:100%}
 .right-panel-title:hover,.right-panel-title:focus-visible{color:var(--accent);background:#00d4ff08}
 .right-panel-icon{display:inline-grid;place-items:center;width:1.25rem;height:1.25rem;margin-right:.35rem;border:1px solid #00d4ff55;border-radius:50%;color:var(--accent);font-size:.8rem;letter-spacing:0}
-.panel-chevron{color:var(--accent);font-size:.9rem;font-weight:400;letter-spacing:0}
+.panel-chevron{flex:0 0 auto;margin-left:auto;color:var(--accent);font-size:.9rem;font-weight:400;letter-spacing:0}
 .right-panel-body{display:flex;flex-direction:column;gap:.55rem;padding:.65rem .75rem .75rem;border-top:1px solid #1a2a40}
 .right-panel-body[hidden]{display:none}
 #futures-bubble-panel #ag-circle-panel{display:flex;flex-direction:column;gap:.55rem;width:100%;padding:0;background:transparent}
@@ -267,35 +267,24 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 /* ── COMPACT INFO BAR (replaces ticker + bub-legend + stats) ── */
 #info-bar{
   flex-shrink:0;
-  display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;
-  padding:.28rem .7rem;
-  background:#090e1a;
+  display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;
+  padding:.28rem .75rem;
+  background:#060a11;
   border-bottom:1px solid var(--border);
-  font-size:.62rem;
+  font-size:.61rem;
 }
-#sym-disp{font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;color:var(--accent);white-space:nowrap}
+#sym-disp{font-family:'Syne',sans-serif;font-weight:800;font-size:.88rem;color:var(--accent);white-space:nowrap}
 
 /* Each label+value pair gets a fixed min-width as a UNIT — label stays tight to number */
-.ti{display:flex;align-items:center;gap:.18rem;white-space:nowrap;flex-shrink:0}
-.tl{color:var(--muted);font-size:.58rem;flex-shrink:0}
+.ti{display:flex;align-items:center;gap:.2rem;white-space:nowrap;flex-shrink:0}
+.tl{color:var(--muted);font-size:.56rem;flex-shrink:0}
 
 /* All numeric values use tabular-nums so digit widths never shift */
 .tv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .up{color:var(--green)}.dn{color:var(--red)}
 
-/* Reserve stable width per .ti pair (label included) so neighbours never shift */
-.ti:has(#t-ltp) { min-width:100px }   /* LTP 23,815.00 */
-.ti:has(#t-o)   { min-width:84px  }   /* O 23,815.00   */
-.ti:has(#t-h)   { min-width:84px  }   /* H 23,815.00   */
-.ti:has(#t-l)   { min-width:84px  }   /* L 23,815.00   */
-.ti:has(#t-c)   { min-width:84px  }   /* C 23,815.00   */
-.ti:has(#t-v)   { min-width:70px  }   /* Vol 65        */
-/* Delta: needs room for sign + double-digit % e.g. "+1,234.50 (99.99%)" */
-.ti:has(#t-chg) { min-width:168px }
-.ti:has(#t-rat) { min-width:86px }
-
 #live-ltp{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums}
-.bar-sep{width:1px;height:14px;background:var(--border);flex-shrink:0}
+.bar-sep{width:1px;height:12px;background:var(--border);flex-shrink:0;opacity:.6}
 /* bubble controls inside info bar */
 .bc-label{color:var(--yellow);font-size:.58rem;white-space:nowrap}
 .bc-num{width:42px;font-family:'JetBrains Mono',monospace;font-size:.6rem;background:var(--bg);border:1px solid var(--yellow-dark);color:var(--yellow);border-radius:3px;padding:.1rem .3rem;outline:none;-moz-appearance:textfield}
@@ -423,10 +412,10 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
   }
   #right-drawer.collapsed{transform:translateX(120%);width:0;min-width:0}
   #right-drawer-toggle{right:0;top:50%;transform:translateY(-50%);height:56px;min-width:28px;padding:.45rem .5rem}
-  #info-bar{gap:.25rem;padding:.3rem .4rem}
+  #info-bar{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;flex-wrap:nowrap !important;white-space:nowrap !important;padding:.3rem .45rem}
+  #info-bar > *{flex:0 0 auto !important}
   #sym-disp{font-size:.72rem;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ti{min-width:unset}
-  .ti:has(#t-chg){min-width:120px}
   .fbtn{min-width:92px}
   #custom-sym{width:100%}
   #chart-wrap{padding:.25rem}
@@ -437,11 +426,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 }
 
 @media (max-width: 520px) {
-  #info-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
   #info-bar::-webkit-scrollbar{height:3px}
   #sym-disp{max-width:100px}
-  .ti:has(#t-v){min-width:68px}
-  .ti:has(#t-chg){min-width:140px}
   #right-drawer,#side-drawer{width:min(88vw,290px);min-width:min(88vw,290px)}
   .fbtn{min-width:0;width:100%}
   #sidebar-brand{font-size:.8rem}
