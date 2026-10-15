@@ -162,7 +162,10 @@ function connectWS() {
     else if (t === 'price_zones') { renderPriceZones(msg); }
     else if (t === 'price_zones_error') { showAlert('err','⚠ '+msg.message,false); }
     else if (t === 'subscriptions') { renderActiveSubscriptions(msg.instruments); }
-    else if (t === 'unsubscribed') { removeActiveSubscription(msg.symbol); }
+    else if (t === 'unsubscribed') {
+      removeActiveSubscription(msg.symbol);
+      if (!msg.removed) showAlert('warn', `⚠ ${msg.symbol} was not active on the server.`);
+    }
     else if (t === 'error') { showAlert('err','⚠ '+msg.message,false); }
     } catch(e) {
       console.error('Message handler error:', e);
