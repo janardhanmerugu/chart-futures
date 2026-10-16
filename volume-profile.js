@@ -69,20 +69,22 @@ const VP = (() => {
       (best, row, index) => row.volume > rows[best].volume ? index : best,
       0,
     );
-    let lowIndex = pocRowIndex;
-    let highIndex = pocRowIndex;
+    let lowIndex = rows[pocRowIndex].index;
+    let highIndex = rows[pocRowIndex].index;
     let valueAreaVolume = rows[pocRowIndex].volume;
+    const minIndex = rows[0].index;
+    const maxIndex = rows[rows.length - 1].index;
     const targetVolume = totalVolume * VALUE_AREA_FRACTION;
     while (valueAreaVolume < targetVolume &&
-           (lowIndex > 0 || highIndex < rows.length - 1)) {
-      const below = lowIndex > 0 ? rows[lowIndex - 1].volume : -1;
-      const above = highIndex < rows.length - 1 ? rows[highIndex + 1].volume : -1;
+           (lowIndex > minIndex || highIndex < maxIndex)) {
+      const below = lowIndex > minIndex ? levels.get(lowIndex - 1) || 0 : -1;
+      const above = highIndex < maxIndex ? levels.get(highIndex + 1) || 0 : -1;
       if (above > below) {
         highIndex++;
-        valueAreaVolume += rows[highIndex].volume;
+        valueAreaVolume += levels.get(highIndex) || 0;
       } else {
         lowIndex--;
-        valueAreaVolume += rows[lowIndex].volume;
+        valueAreaVolume += levels.get(lowIndex) || 0;
       }
     }
 
@@ -96,8 +98,8 @@ const VP = (() => {
       totalVolume,
       maxVolume: rows.reduce((maximum, row) => Math.max(maximum, row.volume), 0),
       poc: priceAt(rows[pocRowIndex].index),
-      valueAreaLow: rows[lowIndex].price,
-      valueAreaHigh: rows[highIndex].price,
+      valueAreaLow: priceAt(lowIndex),
+      valueAreaHigh: priceAt(highIndex),
       vwap: weightedPriceVolume / totalVolume,
     };
   }
