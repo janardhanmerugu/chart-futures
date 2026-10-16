@@ -160,17 +160,15 @@ function connectWS() {
       if (msg.current_candle) {
         const chartCandle = msg.current_candle;
         upsertCandle(chartCandle, false);
-        VP.draw();
         updateTicker(chartCandle, msg.instrument);
       }
+      VP.draw();
       requestAnimationFrame(() => AGBUB.draw());
     }
     else if (t === 'history_list') {
       renderSavedList(msg.datasets);
     }
     else if (t === 'history_data') { applyHistoryData(msg); }
-    else if (t === 'volume_profile_data') { VP.receiveProfileData(msg); }
-    else if (t === 'volume_profile_error') { VP.receiveProfileError(msg); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

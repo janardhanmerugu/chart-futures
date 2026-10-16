@@ -1,7 +1,6 @@
 const VP = (() => {
   const VALUE_AREA_FRACTION = 0.70;
-  const DEFAULT_TICK_SIZE = 0.05;
-  const DEFAULT_GROUPING = 1;
+  const DEFAULT_BIN_SIZE = 1;
   const DEFAULT_PROFILE_WIDTH = 150;
   let canvas = null;
   let ctx = null;
@@ -9,32 +8,13 @@ const VP = (() => {
   let dragStart = null;
   let dragCurrent = null;
   let profiles = [];
-  let grouping = DEFAULT_GROUPING;
+  let binSize = DEFAULT_BIN_SIZE;
   let profileWidth = DEFAULT_PROFILE_WIDTH;
   let instrumentKey = null;
-  let nextRequestId = 1;
-  const pendingRequests = new Map();
-
-  function exactPriceLevel(price) {
-    return Number(price.toFixed(6));
-  }
-
-  function priceTickSize(prices) {
-    const values = [...new Set(prices.map(price => Math.round(price * 1e6)))].sort((a, b) => a - b);
-    let increment = 0;
-    for (let index = 1; index < values.length; index++) {
-      let difference = values[index] - values[index - 1];
-      while (difference) {
-        [increment, difference] = [difference, increment % difference];
-      }
-    }
-    const inferred = increment / 1e6;
-    return inferred > 0 && inferred <= DEFAULT_TICK_SIZE ? inferred : DEFAULT_TICK_SIZE;
-  }
+  let historicalTicks = [];
 
   function reset() {
     profiles = [];
-    pendingRequests.clear();
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
@@ -47,123 +27,134 @@ const VP = (() => {
     const nextInstrumentKey = typeof value === 'string' ? value.trim() : '';
     if (instrumentKey === nextInstrumentKey) return;
     instrumentKey = nextInstrumentKey || null;
+    historicalTicks = [];
     reset();
+  }
+
+  function setHistoricalTicks(value, ticks) {
+    if (value !== instrumentKey) return;
+    historicalTicks = Array.isArray(ticks)
+      ? ticks.map(tick => ({
+        timestamp: Number(tick.timestamp),
+        price: Number(tick.ltp),
+        cumulativeVolume: tick.vtt == null ? null : Number(tick.vtt),
+        volume: Number(tick.contracts),
+      })).filter(tick =>
+        Number.isFinite(tick.timestamp) &&
+        Number.isFinite(tick.price) && tick.price > 0 &&
+        (tick.cumulativeVolume === null || Number.isFinite(tick.cumulativeVolume)) &&
+        Number.isFinite(tick.volume) && tick.volume >= 0)
+        .sort((a, b) => a.timestamp - b.timestamp)
+      : [];
+    updateStatus();
   }
 
   function buildProfile(start, end, rawLevels, tickCount) {
     if (!rawLevels.length) return null;
-    const step = priceTickSize(rawLevels.map(level => level.price)) * grouping;
     const levels = new Map();
+    let weightedPriceVolume = 0;
+    let totalVolume = 0;
     for (const item of rawLevels) {
-      const level = groupedPriceLevel(item.price, step);
-      levels.set(level, (levels.get(level) || 0) + item.volume);
+      const index = Math.round(item.price / binSize);
+      levels.set(index, (levels.get(index) || 0) + item.volume);
+      weightedPriceVolume += item.price * item.volume;
+      totalVolume += item.volume;
+    }
+    if (!totalVolume) return null;
+
+    const rows = [...levels]
+      .map(([index, volume]) => ({index, price: priceAt(index), volume}))
+      .sort((a, b) => a.index - b.index);
+    const pocRowIndex = rows.reduce(
+      (best, row, index) => row.volume > rows[best].volume ? index : best,
+      0,
+    );
+    let lowIndex = pocRowIndex;
+    let highIndex = pocRowIndex;
+    let valueAreaVolume = rows[pocRowIndex].volume;
+    const targetVolume = totalVolume * VALUE_AREA_FRACTION;
+    while (valueAreaVolume < targetVolume &&
+           (lowIndex > 0 || highIndex < rows.length - 1)) {
+      const below = lowIndex > 0 ? rows[lowIndex - 1].volume : -1;
+      const above = highIndex < rows.length - 1 ? rows[highIndex + 1].volume : -1;
+      if (above > below) {
+        highIndex++;
+        valueAreaVolume += rows[highIndex].volume;
+      } else {
+        lowIndex--;
+        valueAreaVolume += rows[lowIndex].volume;
+      }
     }
 
-    const result = {
+    return {
       start,
       end,
       rawLevels,
-      levels,
-      step,
       tickCount,
-      rows: [...levels]
-        .map(([price, volume]) => ({price, volume}))
-        .sort((a, b) => a.price - b.price),
+      levels,
+      rows,
+      totalVolume,
+      maxVolume: rows.reduce((maximum, row) => Math.max(maximum, row.volume), 0),
+      poc: priceAt(rows[pocRowIndex].index),
+      valueAreaLow: rows[lowIndex].price,
+      valueAreaHigh: rows[highIndex].price,
+      vwap: weightedPriceVolume / totalVolume,
     };
-    updateProfileSummary(result);
-    return result;
   }
 
   function requestProfile(start, end, chartStart, chartEnd) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      updateStatus('Cannot load profile: server is disconnected');
+    if (!instrumentKey) {
+      updateStatus('Load a symbol before selecting a historical range');
       return;
     }
-    const requestId = String(nextRequestId++);
-    pendingRequests.set(requestId, {chartStart, chartEnd});
-    updateStatus('Loading selected range from historical tick data…');
-    ws.send(JSON.stringify({
-      type: 'load_volume_profile',
-      request_id: requestId,
-      instrument: instrumentKey,
-      start_time_ms: Math.floor(start * 1000),
-      end_time_ms: Math.ceil(end * 1000),
-    }));
-  }
+    if (!historicalTicks.length) {
+      updateStatus('Load chart history with tick data before selecting a range');
+      return;
+    }
 
-  function receiveProfileData(message) {
-    const pending = pendingRequests.get(String(message.request_id));
-    if (!pending) return;
-    pendingRequests.delete(String(message.request_id));
-    if (message.instrument !== instrumentKey) return;
+    const startMs = start * 1000;
+    const endMs = end * 1000;
+    const rawLevels = [];
+    let previousVolume = null;
+    let previousDay = null;
+    let tickCount = 0;
+    for (const tick of historicalTicks) {
+      const tickDate = new Date(tick.timestamp + IST_OFFSET_MS);
+      const tradingDay = `${tickDate.getUTCFullYear()}-${tickDate.getUTCMonth()}-${tickDate.getUTCDate()}`;
+      let volume;
+      if (tick.cumulativeVolume === null) {
+        volume = tick.volume;
+        previousVolume = null;
+      } else if (tradingDay !== previousDay || previousVolume === null ||
+                 tick.cumulativeVolume < previousVolume) {
+        volume = 0;
+        previousVolume = tick.cumulativeVolume;
+      } else {
+        volume = tick.cumulativeVolume - previousVolume;
+        previousVolume = tick.cumulativeVolume;
+      }
+      previousDay = tradingDay;
 
-    const levels = Array.isArray(message.levels)
-      ? message.levels.map(level => ({
-        price: Number(level.price),
-        volume: Number(level.volume),
-      })).filter(level =>
-        Number.isFinite(level.price) && level.price > 0 &&
-        Number.isFinite(level.volume) && level.volume > 0)
-      : [];
-    const profile = buildProfile(
-      Number(message.start_time_ms) / 1000,
-      Number(message.end_time_ms) / 1000,
-      levels,
-      Number(message.tick_count) || 0,
-    );
+      if (tick.timestamp >= startMs && tick.timestamp <= endMs && volume > 0) {
+        rawLevels.push({price: tick.price, volume});
+        tickCount++;
+      }
+    }
+
+    const profile = buildProfile(start, end, rawLevels, tickCount);
     if (!profile) {
-      updateStatus('No historical tick-volume data in selected range');
+      updateStatus('No loaded tick-volume data in selected range');
       return;
     }
-    profile.chartStart = pending.chartStart;
-    profile.chartEnd = pending.chartEnd;
+    profile.chartStart = chartStart;
+    profile.chartEnd = chartEnd;
     profiles.push(profile);
     updateStatus();
     draw();
   }
 
-  function receiveProfileError(message) {
-    const requestId = String(message.request_id);
-    if (!pendingRequests.has(requestId)) return;
-    pendingRequests.delete(requestId);
-    updateStatus(`Volume profile failed: ${message.message || 'server error'}`);
-  }
-
-  function groupedPriceLevel(price, step) {
-    return exactPriceLevel(Math.round(price / step) * step);
-  }
-
-  function updateProfileSummary(result) {
-    result.rows = [...result.levels]
-      .map(([price, volume]) => ({price, volume}))
-      .sort((a, b) => a.price - b.price);
-    const rows = result.rows;
-    const totalVolume = rows.reduce((sum, row) => sum + row.volume, 0);
-    const pocIndex = rows.reduce(
-      (best, row, index) => row.volume > rows[best].volume ? index : best,
-      0,
-    );
-    let valueAreaLow = pocIndex;
-    let valueAreaHigh = pocIndex;
-    let valueAreaVolume = rows[pocIndex].volume;
-    const targetVolume = totalVolume * VALUE_AREA_FRACTION;
-    while (valueAreaVolume < targetVolume &&
-           (valueAreaLow > 0 || valueAreaHigh < rows.length - 1)) {
-      const below = valueAreaLow > 0 ? rows[valueAreaLow - 1].volume : -1;
-      const above = valueAreaHigh < rows.length - 1 ? rows[valueAreaHigh + 1].volume : -1;
-      if (above > below) {
-        valueAreaHigh++;
-        valueAreaVolume += rows[valueAreaHigh].volume;
-      } else {
-        valueAreaLow--;
-        valueAreaVolume += rows[valueAreaLow].volume;
-      }
-    }
-    result.totalVolume = totalVolume;
-    result.poc = rows[pocIndex].price;
-    result.valueAreaLow = rows[valueAreaLow].price;
-    result.valueAreaHigh = rows[valueAreaHigh].price;
-    result.maxVolume = Math.max(...rows.map(row => row.volume));
+  function priceAt(index) {
+    return Number((index * binSize).toFixed(6));
   }
 
   function formatPrice(price) {
@@ -186,12 +177,8 @@ const VP = (() => {
     return `${day}/${month} ${hour}:${minute}`;
   }
 
-  function statusElement() {
-    return document.getElementById('vp-status');
-  }
-
   function updateStatus(message = null) {
-    const status = statusElement();
+    const status = document.getElementById('vp-status');
     if (!status) return;
     if (message) {
       status.textContent = message;
@@ -199,26 +186,28 @@ const VP = (() => {
       return;
     }
     if (selectionMode) {
-      status.textContent = 'Drag across chart to select a range';
+      status.textContent = 'Drag across chart to select a historical range';
       status.title = status.textContent;
       return;
     }
     if (!profiles.length) {
-      status.textContent = 'Drag across chart to select a range';
+      status.textContent = historicalTicks.length
+        ? 'Select a chart range to profile loaded historical ticks'
+        : 'Load chart history to get historical ticks';
       status.title = status.textContent;
       return;
     }
     const profile = profiles[profiles.length - 1];
     status.textContent =
-      `${profiles.length} profile${profiles.length === 1 ? '' : 's'} · ` +
-      `${formatDateTime(profile.start)}–${formatDateTime(profile.end)} · ` +
-      `POC ${formatPrice(profile.poc)} · Vol ${formatVolume(profile.totalVolume)}`;
+      `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
+      `POC ${formatPrice(profile.poc)} · VWAP ${formatPrice(profile.vwap)}`;
     status.title =
-      `${profiles.length} profile${profiles.length === 1 ? '' : 's'} · ` +
+      `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
+      `${formatDateTime(profile.start)}–${formatDateTime(profile.end)} · ` +
       `${profile.tickCount.toLocaleString('en-IN')} tick updates · ` +
       `POC ${formatPrice(profile.poc)} · ` +
       `VA ${formatPrice(profile.valueAreaLow)}–${formatPrice(profile.valueAreaHigh)} · ` +
-      `Volume ${formatVolume(profile.totalVolume)}`;
+      `VWAP ${formatPrice(profile.vwap)} · Volume ${formatVolume(profile.totalVolume)}`;
   }
 
   function updateSelectionMode() {
@@ -227,7 +216,7 @@ const VP = (() => {
     const button = document.getElementById('vp-range-btn');
     if (button) {
       button.classList.toggle('active', selectionMode);
-      button.textContent = selectionMode ? 'Drag range…' : 'Volume Profile';
+      button.textContent = selectionMode ? 'Drag range…' : 'Select Range';
     }
   }
 
@@ -267,10 +256,10 @@ const VP = (() => {
   function finishDrag(event) {
     if (dragStart == null) return;
     dragCurrent = pointerX(event);
-    const chartStart = chartTimeAt(Math.min(dragStart, dragCurrent));
-    const chartEnd = chartTimeAt(Math.max(dragStart, dragCurrent));
-    const first = chartStart == null ? null : sourceTimeAt(chartStart);
-    const last = chartEnd == null ? null : sourceTimeAt(chartEnd);
+    const startChartTime = chartTimeAt(Math.min(dragStart, dragCurrent));
+    const endChartTime = chartTimeAt(Math.max(dragStart, dragCurrent));
+    const first = startChartTime == null ? null : sourceTimeAt(startChartTime);
+    const last = endChartTime == null ? null : sourceTimeAt(endChartTime);
     dragStart = null;
     dragCurrent = null;
     selectionMode = false;
@@ -281,11 +270,13 @@ const VP = (() => {
       draw();
       return;
     }
-    requestProfile(Math.min(first, last), Math.max(first, last), chartStart, chartEnd);
+    requestProfile(Math.min(first, last), Math.max(first, last),
+      startChartTime, endChartTime);
+    draw();
   }
 
   function drawRangeRectangle(startX, endX, chartStart, chartEnd, preview = false) {
-    if (!ctx || !cSeries) return;
+    if (!ctx || !cSeries || !lwChart) return;
     const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
     const left = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
     const right = Math.max(0, Math.min(plotRight, Math.max(startX, endX)));
@@ -315,14 +306,22 @@ const VP = (() => {
     ctx.setLineDash([]);
   }
 
+  function chartPositionForProfile(profile) {
+    const startTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
+    const endTime = profile.chartEnd ?? mapChartTime(profile.end + IST_OFFSET_S);
+    return {
+      startTime,
+      endTime,
+      startX: lwChart.timeScale().timeToCoordinate(startTime),
+      endX: lwChart.timeScale().timeToCoordinate(endTime),
+    };
+  }
+
   function drawSavedRange(profile) {
-    if (!lwChart) return;
-    const startChartTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
-    const endChartTime = profile.chartEnd ?? mapChartTime(profile.end + IST_OFFSET_S);
-    const startX = lwChart.timeScale().timeToCoordinate(startChartTime);
-    const endX = lwChart.timeScale().timeToCoordinate(endChartTime);
-    if (startX == null || endX == null) return;
-    drawRangeRectangle(startX, endX, startChartTime, endChartTime);
+    const position = chartPositionForProfile(profile);
+    if (position.startX == null || position.endX == null) return;
+    drawRangeRectangle(position.startX, position.endX,
+      position.startTime, position.endTime);
   }
 
   function drawSelection() {
@@ -330,20 +329,20 @@ const VP = (() => {
     const startChartTime = chartTimeAt(Math.min(dragStart, dragCurrent));
     const endChartTime = chartTimeAt(Math.max(dragStart, dragCurrent));
     if (startChartTime == null || endChartTime == null) return;
-    drawRangeRectangle(dragStart, dragCurrent, startChartTime, endChartTime, true);
+    drawRangeRectangle(dragStart, dragCurrent,
+      startChartTime, endChartTime, true);
   }
 
   function drawProfile(profile) {
     if (!lwChart || !cSeries || !ctx) return;
     const scale = window.devicePixelRatio || 1;
     const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
-    const startChartTime = profile.chartStart ?? mapChartTime(profile.start + IST_OFFSET_S);
-    const endChartTime = profile.chartEnd ?? mapChartTime(profile.end + IST_OFFSET_S);
-    const startX = lwChart.timeScale().timeToCoordinate(startChartTime);
-    const endX = lwChart.timeScale().timeToCoordinate(endChartTime);
-    if (startX == null || endX == null) return;
-    const rangeLeft = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
-    const rangeRight = Math.max(0, Math.min(plotRight, Math.max(startX, endX)));
+    const position = chartPositionForProfile(profile);
+    if (position.startX == null || position.endX == null) return;
+    const rangeLeft = Math.max(0,
+      Math.min(plotRight, Math.min(position.startX, position.endX)));
+    const rangeRight = Math.max(0,
+      Math.min(plotRight, Math.max(position.startX, position.endX)));
     const drawnProfileWidth = Math.min(profileWidth, rangeRight - rangeLeft);
     if (drawnProfileWidth < 1) return;
     const barLeft = rangeLeft;
@@ -353,11 +352,12 @@ const VP = (() => {
 
     for (const row of profile.rows) {
       const y = cSeries.priceToCoordinate(row.price);
-      const yAbove = cSeries.priceToCoordinate(row.price + profile.step / 2);
-      const yBelow = cSeries.priceToCoordinate(row.price - profile.step / 2);
-      if (y == null || y < yTop - 2 || y > yBottom + 2) continue;
-      const height = Math.max(3, Math.abs((yBelow ?? y) - (yAbove ?? y)));
-      const width = Math.max(1, drawnProfileWidth * row.volume / profile.maxVolume);
+      const yAbove = cSeries.priceToCoordinate(row.price + binSize / 2);
+      const yBelow = cSeries.priceToCoordinate(row.price - binSize / 2);
+      if (y == null || yAbove == null || yBelow == null ||
+          y < yTop - 2 || y > yBottom + 2) continue;
+      const height = Math.max(1, Math.abs(yBelow - yAbove));
+      const width = drawnProfileWidth * row.volume / profile.maxVolume;
       const inValueArea = row.price >= profile.valueAreaLow &&
         row.price <= profile.valueAreaHigh;
       ctx.fillStyle = inValueArea ? 'rgba(255, 145, 0, 0.92)' : 'rgba(66, 165, 245, 0.88)';
@@ -389,6 +389,19 @@ const VP = (() => {
       ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#ffffff';
       ctx.fillText(`POC ${formatPrice(profile.poc)}`, barLeft + 3, pocY - 2);
+      const vwapY = cSeries.priceToCoordinate(profile.vwap);
+      if (vwapY != null && vwapY >= yTop && vwapY <= yBottom) {
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.95)';
+        ctx.lineWidth = Math.max(1, scale);
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(barLeft, vwapY);
+        ctx.lineTo(barRight, vwapY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(0, 212, 255, 0.95)';
+        ctx.fillText(`VWAP ${formatPrice(profile.vwap)}`, barLeft + 3, vwapY - 2);
+      }
     }
   }
 
@@ -423,7 +436,6 @@ const VP = (() => {
 
   function clear() {
     profiles = [];
-    pendingRequests.clear();
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
@@ -432,10 +444,12 @@ const VP = (() => {
     draw();
   }
 
-  function setGrouping(value) {
-    const nextGrouping = Number(value);
-    if (![1, 2, 5, 10].includes(nextGrouping)) return;
-    grouping = nextGrouping;
+  function setBinSize(value) {
+    const nextSize = Number(value);
+    if (![0.05, 0.1, 0.25, 0.5, 1, 2, 5].includes(nextSize)) return;
+    binSize = nextSize;
+    const input = document.getElementById('vp-bin-size');
+    if (input) input.value = String(binSize);
     if (profiles.length) {
       profiles = profiles.map(profile => {
         const updated = buildProfile(
@@ -450,8 +464,8 @@ const VP = (() => {
         }
         return updated;
       }).filter(Boolean);
-      updateStatus(profiles.length ? null : 'No tick-volume data in selected ranges');
     }
+    updateStatus();
     draw();
   }
 
@@ -468,8 +482,8 @@ const VP = (() => {
     canvas = document.getElementById('vp-canvas');
     if (!canvas) return;
     ctx = canvas.getContext('2d');
-    const groupingInput = document.getElementById('vp-grouping');
-    if (groupingInput) groupingInput.value = String(grouping);
+    const binSizeInput = document.getElementById('vp-bin-size');
+    if (binSizeInput) binSizeInput.value = String(binSize);
     const widthInput = document.getElementById('vp-width');
     if (widthInput) widthInput.value = String(profileWidth);
     setWidth(profileWidth);
@@ -482,8 +496,8 @@ const VP = (() => {
   }
 
   return {
-    init, reset, setInstrument, receiveProfileData, receiveProfileError,
-    startSelection, clear, draw, setGrouping, setWidth,
+    init, reset, setInstrument, setHistoricalTicks,
+    startSelection, clear, draw, setBinSize, setWidth,
   };
 })();
 

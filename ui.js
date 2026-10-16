@@ -671,6 +671,7 @@ function applyHistoryData(msg) {
 
   VP.setInstrument(msg.instrument);
   VP.reset();
+  VP.setHistoricalTicks(msg.instrument, ticks);
   if (candles.length > 0) {
     clearAlerts();
     _applyCandles(candles, label);
@@ -692,6 +693,7 @@ function applySymbolHistory(msg) {
   aggBucket = null;
   VP.setInstrument(msg.instrument);
   VP.reset();
+  VP.setHistoricalTicks(msg.instrument, ticks);
   if (candles.length) {
     _applyCandles(candles, label, true);
     ticks.forEach(t => AGBUB.push(

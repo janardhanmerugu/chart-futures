@@ -295,13 +295,16 @@
             <button class="vp-btn" id="vp-range-btn" type="button" onclick="VP.startSelection()">Select Range</button>
             <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
           </div>
-          <label class="vp-setting" for="vp-grouping">
-            <span>Price grouping</span>
-            <select id="vp-grouping" onchange="VP.setGrouping(this.value)">
-              <option value="1">1 tick</option>
-              <option value="2">2 ticks</option>
-              <option value="5">5 ticks</option>
-              <option value="10">10 ticks</option>
+          <label class="vp-setting" for="vp-bin-size">
+            <span>Price bin Δ</span>
+            <select id="vp-bin-size" onchange="VP.setBinSize(this.value)">
+              <option value="0.05">0.05</option>
+              <option value="0.1">0.1</option>
+              <option value="0.25">0.25</option>
+              <option value="0.5">0.5</option>
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="5">5</option>
             </select>
           </label>
           <label class="vp-setting" for="vp-width">
@@ -309,7 +312,7 @@
             <input id="vp-width" type="range" min="60" max="280" step="10" value="150"
               oninput="VP.setWidth(this.value)"/>
           </label>
-          <span id="vp-status" aria-live="polite">Drag across chart to select a range</span>
+          <span id="vp-status" aria-live="polite">Load chart history to get historical ticks</span>
         </div>
       </section>
 
@@ -381,7 +384,7 @@
 <script src="config.js?v=20260917-3"></script>
 <script src="bubbles.js?v=20260917-3"></script>
 <script src="chart.js?v=20261011-2"></script>
-<script src="volume-profile.js?v=20261011-12"></script>
+<script src="volume-profile.js?v=20261016-2"></script>
 <script src="ui.js?v=20261015-2"></script>
 <script src="ws.js?v=20261015-3"></script>
 <script src="init.js?v=20261015-2"></script>
