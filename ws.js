@@ -4,6 +4,7 @@
 
 let wsRetryTmr = null;
 let wsAutoReconnect = true;
+let wsReconnectPending = false;
 
 function connectWS() {
   clearAlerts();
@@ -17,10 +18,7 @@ function connectWS() {
   }
   if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
-  const socketUrl = window.location.protocol === 'https:' &&
-      CONFIG.WEBSOCKET_URL.startsWith('ws://')
-      ? 'wss://src-saw-scholarship-trading.trycloudflare.com/ws'
-      : CONFIG.WEBSOCKET_URL;
+  const socketUrl = CONFIG.WEBSOCKET_URL;
 
   try {
     ws = new WebSocket(socketUrl);
@@ -46,7 +44,18 @@ function connectWS() {
         if (el) el.textContent = tickCnt;
         tickCnt=0;
       }, CONFIG.TPS_INTERVAL_MS);
-      loadFutures();
+      if (wsReconnectPending) {
+        const savedToken = sessionStorage.getItem('upstox_token');
+        if (savedToken) {
+          socket.send(JSON.stringify({type:'auth', token:savedToken}));
+          showAlert('info','🔄 Reconnected. Restoring your session…');
+        } else {
+          wsReconnectPending = false;
+          loadFutures();
+        }
+      } else {
+        loadFutures();
+      }
     });
   };
 
@@ -59,6 +68,14 @@ function connectWS() {
     if (t === 'auth_ok') {
       setTok(true,'✅ Token accepted!'); setStatus('live','● READY');
       showAlert('ok','✅ Token saved! Pick symbol and click ▶ Load');
+      if (wsReconnectPending) {
+        wsReconnectPending = false;
+        if (selSym) {
+          socket.send(JSON.stringify({
+            type:'subscribe', symbol:selSym, interval:selIv, display_interval:selIv,
+          }));
+        }
+      }
     }
     else if (t === 'auth_fail') { setTok(false,'❌ '+msg.message); showAlert('err','⚠ '+msg.message,false); }
     else if (t === 'init') {
@@ -191,6 +208,7 @@ function connectWS() {
       tokSaved=false; setTok(null,'Disconnected.');
       ws = null;
       if (wsAutoReconnect && !wsRetryTmr) {
+        wsReconnectPending = true;
         wsRetryTmr = setTimeout(() => {
           wsRetryTmr = null;
           connectWS();
@@ -204,6 +222,7 @@ function connectWS() {
 
 function disconnectWS(){
   wsAutoReconnect = false;
+  wsReconnectPending = false;
   if (wsRetryTmr) {
     clearTimeout(wsRetryTmr);
     wsRetryTmr = null;
