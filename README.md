@@ -43,7 +43,7 @@ Then click **Connect** and authenticate with a valid Upstox token.
 
 ## Volume Profile
 
-Click **Select Range**, then drag across the loaded chart to request a profile
+Click **Select Range** (or press **Q**), then drag across the loaded chart to request a profile
 for that historical time range. The profile uses the historical tick list
 already loaded with chart history; selecting a range makes no additional
 server request. It calculates volume from cumulative-volume differences and

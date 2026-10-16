@@ -493,6 +493,15 @@ const VP = (() => {
     canvas.addEventListener('pointermove', moveDrag);
     canvas.addEventListener('pointerup', finishDrag);
     canvas.addEventListener('pointercancel', finishDrag);
+    document.addEventListener('keydown', event => {
+      const target = event.target;
+      if (event.key.toLowerCase() !== 'q' || event.repeat ||
+          event.altKey || event.ctrlKey || event.metaKey ||
+          (target && (target.isContentEditable ||
+            /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
+      event.preventDefault();
+      startSelection();
+    });
     window.addEventListener('resize', draw);
     draw();
   }
