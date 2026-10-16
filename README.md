@@ -51,7 +51,9 @@ is not affected by incoming live ticks. It displays the point of control
 (POC), 70% value area (VAH/VAL), and volume-weighted average price (VWAP). Use
 **Price bin Δ** to set the bin size (for example, 0.05 for options or 1/5 for
 index futures), **Profile width** to adjust the overlay width, and **Clear** to
-remove selected profiles. Load chart history covering the range before
+remove all profiles. To remove one, double-click within its time range to
+select it, click once to deselect it, or press **D** to delete it. The selected
+profile is highlighted. Load chart history covering the range before
 profiling it.
 
 ## Oracle Cloud Deployment

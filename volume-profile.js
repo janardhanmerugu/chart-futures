@@ -7,14 +7,22 @@ const VP = (() => {
   let selectionMode = false;
   let dragStart = null;
   let dragCurrent = null;
+  let deselectTimer = null;
   let profiles = [];
+  let selectedProfileId = null;
+  let nextProfileId = 1;
   let binSize = DEFAULT_BIN_SIZE;
   let profileWidth = DEFAULT_PROFILE_WIDTH;
   let instrumentKey = null;
   let historicalTicks = [];
 
   function reset() {
+    if (deselectTimer !== null) {
+      clearTimeout(deselectTimer);
+      deselectTimer = null;
+    }
     profiles = [];
+    selectedProfileId = null;
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
@@ -150,6 +158,7 @@ const VP = (() => {
     }
     profile.chartStart = chartStart;
     profile.chartEnd = chartEnd;
+    profile.id = nextProfileId++;
     profiles.push(profile);
     updateStatus();
     draw();
@@ -200,16 +209,20 @@ const VP = (() => {
       return;
     }
     const profile = profiles[profiles.length - 1];
+    const selectedProfile = profiles.find(item => item.id === selectedProfileId);
+    const statusProfile = selectedProfile || profile;
     status.textContent =
+      `${selectedProfile ? 'Selected profile · ' : ''}` +
       `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
-      `POC ${formatPrice(profile.poc)} · VWAP ${formatPrice(profile.vwap)}`;
+      `POC ${formatPrice(statusProfile.poc)} · VWAP ${formatPrice(statusProfile.vwap)} · ` +
+      'Double-click to select; click to deselect; D to delete';
     status.title =
       `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
-      `${formatDateTime(profile.start)}–${formatDateTime(profile.end)} · ` +
-      `${profile.tickCount.toLocaleString('en-IN')} tick updates · ` +
-      `POC ${formatPrice(profile.poc)} · ` +
-      `VA ${formatPrice(profile.valueAreaLow)}–${formatPrice(profile.valueAreaHigh)} · ` +
-      `VWAP ${formatPrice(profile.vwap)} · Volume ${formatVolume(profile.totalVolume)}`;
+      `${formatDateTime(statusProfile.start)}–${formatDateTime(statusProfile.end)} · ` +
+      `${statusProfile.tickCount.toLocaleString('en-IN')} tick updates · ` +
+      `POC ${formatPrice(statusProfile.poc)} · ` +
+      `VA ${formatPrice(statusProfile.valueAreaLow)}–${formatPrice(statusProfile.valueAreaHigh)} · ` +
+      `VWAP ${formatPrice(statusProfile.vwap)} · Volume ${formatVolume(statusProfile.totalVolume)}`;
   }
 
   function updateSelectionMode() {
@@ -277,7 +290,41 @@ const VP = (() => {
     draw();
   }
 
-  function drawRangeRectangle(startX, endX, chartStart, chartEnd, preview = false) {
+  function selectProfileAt(event) {
+    if (deselectTimer !== null) {
+      clearTimeout(deselectTimer);
+      deselectTimer = null;
+    }
+    const rect = canvas.getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom) return;
+    const x = event.clientX - rect.left;
+    for (let index = profiles.length - 1; index >= 0; index--) {
+      const profile = profiles[index];
+      const {startX, endX} = chartPositionForProfile(profile);
+      if (startX == null || endX == null) continue;
+      if (x >= Math.min(startX, endX) && x <= Math.max(startX, endX)) {
+        selectedProfileId = profile.id;
+        updateStatus();
+        draw();
+        return;
+      }
+    }
+  }
+
+  function deselectProfileOnClick(event) {
+    if (event.detail !== 1 || selectedProfileId === null) return;
+    if (deselectTimer !== null) clearTimeout(deselectTimer);
+    deselectTimer = setTimeout(() => {
+      deselectTimer = null;
+      selectedProfileId = null;
+      updateStatus();
+      draw();
+    }, 350);
+  }
+
+  function drawRangeRectangle(startX, endX, chartStart, chartEnd, preview = false,
+                              selected = false) {
     if (!ctx || !cSeries || !lwChart) return;
     const plotRight = Math.min(lwChart.timeScale().width(), canvas.clientWidth);
     const left = Math.max(0, Math.min(plotRight, Math.min(startX, endX)));
@@ -299,11 +346,14 @@ const VP = (() => {
     const top = Math.max(0, Math.min(plotBottom, highY));
     const bottom = Math.max(0, Math.min(plotBottom, lowY));
     if (bottom - top < 1) return;
-    ctx.fillStyle = preview ? 'rgba(0, 212, 255, 0.10)' : 'rgba(0, 212, 255, 0.045)';
-    ctx.fillRect(left, top, width, bottom - top);
-    ctx.strokeStyle = preview ? 'rgba(0, 212, 255, 0.9)' : 'rgba(0, 212, 255, 0.55)';
-    ctx.lineWidth = preview ? 1.5 : 1;
-    ctx.setLineDash(preview ? [5, 4] : []);
+    if (!selected) {
+      ctx.fillStyle = preview ? 'rgba(0, 212, 255, 0.10)' : 'rgba(0, 212, 255, 0.045)';
+      ctx.fillRect(left, top, width, bottom - top);
+    }
+    ctx.strokeStyle = selected ? 'rgba(255, 255, 255, 0.95)' :
+      preview ? 'rgba(0, 212, 255, 0.9)' : 'rgba(0, 212, 255, 0.55)';
+    ctx.lineWidth = selected ? 2 : preview ? 1.5 : 1;
+    ctx.setLineDash(selected ? [6, 4] : preview ? [5, 4] : []);
     ctx.strokeRect(left, top, width, bottom - top);
     ctx.setLineDash([]);
   }
@@ -324,6 +374,15 @@ const VP = (() => {
     if (position.startX == null || position.endX == null) return;
     drawRangeRectangle(position.startX, position.endX,
       position.startTime, position.endTime);
+  }
+
+  function drawSelectedRange() {
+    const profile = profiles.find(item => item.id === selectedProfileId);
+    if (!profile) return;
+    const position = chartPositionForProfile(profile);
+    if (position.startX == null || position.endX == null) return;
+    drawRangeRectangle(position.startX, position.endX,
+      position.startTime, position.endTime, false, true);
   }
 
   function drawSelection() {
@@ -393,7 +452,7 @@ const VP = (() => {
       ctx.fillText(`POC ${formatPrice(profile.poc)}`, barLeft + 3, pocY - 2);
       const vwapY = cSeries.priceToCoordinate(profile.vwap);
       if (vwapY != null && vwapY >= yTop && vwapY <= yBottom) {
-        ctx.strokeStyle = 'rgba(0, 212, 255, 0.95)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.lineWidth = Math.max(1, scale);
         ctx.setLineDash([4, 3]);
         ctx.beginPath();
@@ -401,7 +460,7 @@ const VP = (() => {
         ctx.lineTo(barRight, vwapY);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(0, 212, 255, 0.95)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.fillText(`VWAP ${formatPrice(profile.vwap)}`, barLeft + 3, vwapY - 2);
       }
     }
@@ -421,6 +480,7 @@ const VP = (() => {
     ctx.clearRect(0, 0, width, height);
     profiles.forEach(drawSavedRange);
     profiles.forEach(drawProfile);
+    drawSelectedRange();
     drawSelection();
   }
 
@@ -437,10 +497,24 @@ const VP = (() => {
   }
 
   function clear() {
+    if (deselectTimer !== null) {
+      clearTimeout(deselectTimer);
+      deselectTimer = null;
+    }
     profiles = [];
+    selectedProfileId = null;
     selectionMode = false;
     dragStart = null;
     dragCurrent = null;
+    updateSelectionMode();
+    updateStatus();
+    draw();
+  }
+
+  function deleteSelectedProfile() {
+    if (selectedProfileId === null) return;
+    profiles = profiles.filter(profile => profile.id !== selectedProfileId);
+    selectedProfileId = null;
     updateSelectionMode();
     updateStatus();
     draw();
@@ -463,6 +537,7 @@ const VP = (() => {
         if (updated) {
           updated.chartStart = profile.chartStart;
           updated.chartEnd = profile.chartEnd;
+          updated.id = profile.id;
         }
         return updated;
       }).filter(Boolean);
@@ -493,14 +568,24 @@ const VP = (() => {
     canvas.addEventListener('pointermove', moveDrag);
     canvas.addEventListener('pointerup', finishDrag);
     canvas.addEventListener('pointercancel', finishDrag);
+    const chart = document.getElementById('chart-con');
+    if (chart) {
+      chart.addEventListener('click', deselectProfileOnClick);
+      chart.addEventListener('dblclick', selectProfileAt);
+    }
     document.addEventListener('keydown', event => {
       const target = event.target;
-      if (event.key.toLowerCase() !== 'q' || event.repeat ||
-          event.altKey || event.ctrlKey || event.metaKey ||
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey ||
           (target && (target.isContentEditable ||
             /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
-      event.preventDefault();
-      startSelection();
+      if (event.key.toLowerCase() === 'q') {
+        event.preventDefault();
+        startSelection();
+      } else if (event.key.toLowerCase() === 'd' &&
+                 profiles.some(profile => profile.id === selectedProfileId)) {
+        event.preventDefault();
+        deleteSelectedProfile();
+      }
     });
     window.addEventListener('resize', draw);
     draw();
