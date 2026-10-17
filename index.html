@@ -6,7 +6,7 @@
   <title>Upstox Futures Chart</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=20261015-4">
+  <link rel="stylesheet" href="style.css?v=20261017-3">
 </head>
 <body>
 
@@ -273,6 +273,7 @@
         </div>
         <canvas id="agbub-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;"></canvas>
         <canvas id="vp-canvas" aria-label="Volume profile overlay"></canvas>
+        <canvas id="rectangle-canvas" aria-label="Rectangle drawing overlay"></canvas>
       </div>
     </div>
 
@@ -305,8 +306,8 @@
               <option value="0.05">0.05</option>
               <option value="0.1">0.1</option>
               <option value="0.25">0.25</option>
-              <option value="0.5">0.5</option>
-              <option value="1" selected>1</option>
+              <option value="0.5" selected>0.5</option>
+              <option value="1">1</option>
               <option value="2">2</option>
               <option value="5">5</option>
             </select>
@@ -317,6 +318,34 @@
               oninput="VP.setWidth(this.value)"/>
           </label>
           <span id="vp-status" aria-live="polite">Load chart history to get historical ticks</span>
+        </div>
+      </section>
+
+      <section class="right-panel" id="chart-drawing-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true"
+          aria-controls="chart-drawing-body"
+          onclick="toggleRightPanel('chart-drawing-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('chart-drawing-panel')}">
+          <span><span class="right-panel-icon">▱</span> DRAWING TOOLS</span><span class="panel-chevron">−</span>
+        </div>
+        <div class="right-panel-body" id="chart-drawing-body">
+          <div id="chart-drawing-controls">
+            <button id="draw-rectangle-btn" class="vp-btn" type="button"
+              aria-pressed="false" title="Draw one rectangle (R)"
+              onclick="RD.toggleDrawing()">Draw one rectangle (R)</button>
+            <button class="vp-btn vp-clear-btn" type="button"
+              onclick="RD.clear()">Clear rectangles</button>
+          </div>
+          <div class="rect-color-picker" role="group" aria-label="Rectangle fill color">
+            <span>Fill color</span>
+            <button class="rect-color-swatch rect-color-red selected" type="button"
+              data-color="#ff3d5a" aria-label="Red fill" aria-pressed="true"
+              title="Red fill" onclick="RD.setColor('#ff3d5a')"></button>
+            <button class="rect-color-swatch rect-color-green" type="button"
+              data-color="#00e676" aria-label="Green fill" aria-pressed="false"
+              title="Green fill" onclick="RD.setColor('#00e676')"></button>
+          </div>
+          <span class="drawing-hint">Press R, then drag once. Click a rectangle to select; double-click it to delete.</span>
         </div>
       </section>
 
@@ -387,10 +416,11 @@
 <script src="lightweight-loader.js?v=20260917-3"></script>
 <script src="config.js?v=20260917-3"></script>
 <script src="bubbles.js?v=20260917-3"></script>
-<script src="chart.js?v=20261011-2"></script>
-<script src="volume-profile.js?v=20261017-3"></script>
-<script src="ui.js?v=20261015-2"></script>
-<script src="ws.js?v=20261017-1"></script>
-<script src="init.js?v=20261015-2"></script>
+<script src="chart.js?v=20261017-3"></script>
+<script src="volume-profile.js?v=20261017-5"></script>
+<script src="rectangle-draw.js?v=20261017-5"></script>
+<script src="ui.js?v=20261017-1"></script>
+<script src="ws.js?v=20261017-2"></script>
+<script src="init.js?v=20261017-2"></script>
 </body>
 </html>

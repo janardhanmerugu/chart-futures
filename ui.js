@@ -495,6 +495,7 @@ function loadSym() {
   historyReadyForSubscribe = false;
   VP.setInstrument(selSym);
   VP.reset();
+  RD.clear();
   if (lwChart) {
     cData=[]; vData=[]; cMap={};
     cSeries.setData([]); vSeries.setData([]);
@@ -671,6 +672,7 @@ function applyHistoryData(msg) {
 
   VP.setInstrument(msg.instrument);
   VP.reset();
+  RD.clear();
   VP.setHistoricalTicks(msg.instrument, ticks);
   if (candles.length > 0) {
     clearAlerts();
@@ -693,6 +695,7 @@ function applySymbolHistory(msg) {
   aggBucket = null;
   VP.setInstrument(msg.instrument);
   VP.reset();
+  RD.clear();
   VP.setHistoricalTicks(msg.instrument, ticks);
   if (candles.length) {
     _applyCandles(candles, label, true);

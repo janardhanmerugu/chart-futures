@@ -144,6 +144,7 @@ function connectWS() {
       const chartCandle = msg.candle;
       upsertCandle(chartCandle, false);
       VP.draw();
+      RD.draw();
       updateTicker(chartCandle, msg.instrument);
       if (_atRealTime) lwChart.timeScale().scrollToRealTime();
       requestAnimationFrame(() => AGBUB.draw());
@@ -163,6 +164,7 @@ function connectWS() {
         updateTicker(chartCandle, msg.instrument);
       }
       VP.draw();
+      RD.draw();
       requestAnimationFrame(() => AGBUB.draw());
     }
     else if (t === 'history_list') {

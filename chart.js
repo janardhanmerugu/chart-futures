@@ -90,11 +90,12 @@ function initCharts() {
   lwChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
     AGBUB.draw();
     VP.draw();
+    RD.draw();
   });
 
   // Redraw bubbles on price scale change (vertical zoom)
   lwChart.priceScale('right').applyOptions({});
-  lwChart.subscribeCrosshairMove(() => { AGBUB.draw(); VP.draw(); });
+  lwChart.subscribeCrosshairMove(() => { AGBUB.draw(); VP.draw(); RD.draw(); });
 
   // Mount bubble overlay canvas
   AGBUB.mount();
@@ -113,7 +114,7 @@ function initCharts() {
         const h  = Math.floor(el.clientHeight);
         if (el.id === 'chart-con' && lwChart) lwChart.resize(Math.max(w,200), Math.max(h,100));
       }
-      AGBUB.sync(); AGBUB.draw(); VP.draw();
+      AGBUB.sync(); AGBUB.draw(); VP.draw(); RD.draw();
     });
     wrap._ro.observe(con);
   }

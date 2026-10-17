@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', () => {
+  RD.init();
   const bubblePanel = document.getElementById('ag-circle-panel');
   const bubbleBody = document.getElementById('futures-bubble-body');
   const bubbleMetrics = document.getElementById('bubble-metrics');
@@ -34,7 +35,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Ctrl + Left-click → add / remove nearest horizontal line
   document.getElementById('chart-con').addEventListener('click', e => {
-    if (!e.ctrlKey || !lwChart || !cSeries) return;
+    if (RD.isDrawing() || !e.ctrlKey || !lwChart || !cSeries) return;
     const rect  = document.getElementById('lw-chart').getBoundingClientRect();
     const y     = e.clientY - rect.top;
     const price = cSeries.coordinateToPrice(y);

@@ -1,6 +1,6 @@
 const VP = (() => {
   const VALUE_AREA_FRACTION = 0.70;
-  const DEFAULT_BIN_SIZE = 1;
+  const DEFAULT_BIN_SIZE = 0.5;
   const DEFAULT_PROFILE_WIDTH = 150;
   const DELTA_COLUMN_MAX_WIDTH = 64;
   let canvas = null;
@@ -516,17 +516,16 @@ const VP = (() => {
     const rangeRight = Math.max(0,
       Math.min(plotRight, Math.max(position.startX, position.endX)));
     const rangeWidth = rangeRight - rangeLeft;
-    const deltaColumnWidth = showDelta
-      ? Math.min(DELTA_COLUMN_MAX_WIDTH, rangeWidth * 0.3)
-      : 0;
-    const drawnProfileWidth = Math.min(profileWidth, rangeWidth - deltaColumnWidth);
+    const drawnProfileWidth = Math.min(profileWidth, rangeWidth);
     if (drawnProfileWidth < 1) return;
-    const barLeft = rangeLeft + deltaColumnWidth;
+    const barLeft = rangeLeft;
     const barRight = barLeft + drawnProfileWidth;
     const yTop = 0;
     const yBottom = canvas.clientHeight - 22;
-    const deltaBaselineX = rangeLeft + deltaColumnWidth;
-    const deltaMaxWidth = deltaColumnWidth - 4;
+    const deltaBaselineX = rangeLeft;
+    const deltaMaxWidth = showDelta
+      ? Math.max(0, Math.min(DELTA_COLUMN_MAX_WIDTH, deltaBaselineX) - 4)
+      : 0;
 
     if (showDelta) {
       ctx.strokeStyle = 'rgba(190, 205, 220, 0.42)';
@@ -539,7 +538,9 @@ const VP = (() => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(190, 205, 220, 0.8)';
-      ctx.fillText('Δ', rangeLeft + deltaColumnWidth / 2, yTop + 2);
+      if (deltaMaxWidth > 0) {
+        ctx.fillText('Δ', deltaBaselineX - deltaMaxWidth / 2, yTop + 2);
+      }
     }
 
     for (const row of profile.rows) {

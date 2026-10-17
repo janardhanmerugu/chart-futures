@@ -53,12 +53,25 @@ profile. Delta bars appear to the left of the volume histogram: green is
 positive (Ask minus Bid), red is negative. The backend classifies stored
 tick-volume estimates using each row's saved bid/ask and falls back to the tick
 rule when quotes do not determine a side, so delta is not exact trade-by-trade.
-Use **Show delta** to toggle the delta column, **Price bin Δ** to set the bin
-size (for example, 0.05 for options or 1/5 for index futures), **Profile width**
-to adjust the histogram, and **Clear** to remove all profiles. To remove one,
+Use **Show delta** to toggle the delta bars, **Price bin Δ** to set the bin
+size (default 0.5; for example, 0.05 for options or 1/5 for index futures), **Profile width**
+to adjust the histogram, and **Clear** to remove all profiles. The range's left
+edge is the shared baseline: volume bars extend right inside the range, while
+delta bars extend left outside it. To remove one,
 double-click within its time range to select it, click once to deselect it, or
 press **D** to delete it. The selected profile is highlighted. Load chart
 history covering the range before profiling it.
+
+## Drawing Rectangles
+
+Open **Drawing Tools** in the right sidebar, then click **Draw rectangle** or
+press **R** to arm a single rectangle. Click and drag over the chart to draw
+it; drawing mode exits when the drag ends. Choose red or green with the fill
+color swatches before drawing. Click a rectangle to select it, then double-click
+it to delete that rectangle. Use **Clear rectangles** to remove all drawn
+areas. You can draw across empty time slots and into future chart space. Press
+**Escape** to cancel drawing. Rectangles are cleared when the selected
+instrument or loaded history changes.
 
 ## Oracle Cloud Deployment
 
