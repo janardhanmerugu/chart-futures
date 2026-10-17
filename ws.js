@@ -169,6 +169,8 @@ function connectWS() {
       renderSavedList(msg.datasets);
     }
     else if (t === 'history_data') { applyHistoryData(msg); }
+    else if (t === 'volume_profile_data') { VP.handleProfileData(msg); }
+    else if (t === 'volume_profile_error') { VP.handleProfileError(msg); }
     else if (t === 'futures_loading') {
       // spinner already shown by loadFutures(), nothing to do
     }

@@ -44,17 +44,21 @@ Then click **Connect** and authenticate with a valid Upstox token.
 ## Volume Profile
 
 Click **Select Range** (or press **Q**), then drag across the loaded chart to request a profile
-for that historical time range. The profile uses the historical tick list
-already loaded with chart history; selecting a range makes no additional
-server request. It calculates volume from cumulative-volume differences and
-is not affected by incoming live ticks. It displays the point of control
-(POC), 70% value area (VAH/VAL), and volume-weighted average price (VWAP). Use
-**Price bin Δ** to set the bin size (for example, 0.05 for options or 1/5 for
-index futures), **Profile width** to adjust the overlay width, and **Clear** to
-remove all profiles. To remove one, double-click within its time range to
-select it, click once to deselect it, or press **D** to delete it. The selected
-profile is highlighted. Load chart history covering the range before
-profiling it.
+for that historical time range. The volume histogram, point of control (POC),
+70% value area (VAH/VAL), and volume-weighted average price (VWAP) are
+calculated locally from the loaded historical ticks. The backend is requested
+only for historical Bid/Ask aggressor-side data used in delta; its volume
+totals are not used for the histogram. Live ticks do not change an existing
+profile. Delta bars appear to the left of the volume histogram: green is
+positive (Ask minus Bid), red is negative. The backend classifies stored
+tick-volume estimates using each row's saved bid/ask and falls back to the tick
+rule when quotes do not determine a side, so delta is not exact trade-by-trade.
+Use **Show delta** to toggle the delta column, **Price bin Δ** to set the bin
+size (for example, 0.05 for options or 1/5 for index futures), **Profile width**
+to adjust the histogram, and **Clear** to remove all profiles. To remove one,
+double-click within its time range to select it, click once to deselect it, or
+press **D** to delete it. The selected profile is highlighted. Load chart
+history covering the range before profiling it.
 
 ## Oracle Cloud Deployment
 

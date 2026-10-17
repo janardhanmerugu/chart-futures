@@ -293,6 +293,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .bc-val{color:var(--yellow);font-size:.58rem;min-width:20px}
 #bub-hover-info{margin-left:auto;color:var(--accent);font-size:.6rem;min-height:12px}
 #volume-profile-controls{display:flex;align-items:center;gap:.4rem}
+.vp-delta-toggle{display:flex;align-items:center;gap:.35rem;color:var(--muted);font-size:.6rem;cursor:pointer}
+.vp-delta-toggle input{margin:0;accent-color:var(--green)}
 .vp-setting{display:flex;flex-direction:column;gap:.3rem;color:var(--muted);font-size:.58rem}
 .vp-setting>span{display:flex;align-items:center;justify-content:space-between}
 .vp-setting strong{color:var(--accent);font-weight:600}

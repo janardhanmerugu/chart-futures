@@ -2,6 +2,7 @@ const VP = (() => {
   const VALUE_AREA_FRACTION = 0.70;
   const DEFAULT_BIN_SIZE = 1;
   const DEFAULT_PROFILE_WIDTH = 150;
+  const DELTA_COLUMN_MAX_WIDTH = 64;
   let canvas = null;
   let ctx = null;
   let selectionMode = false;
@@ -13,8 +14,11 @@ const VP = (() => {
   let nextProfileId = 1;
   let binSize = DEFAULT_BIN_SIZE;
   let profileWidth = DEFAULT_PROFILE_WIDTH;
+  let showDelta = true;
   let instrumentKey = null;
   let historicalTicks = [];
+  let pendingRequests = new Map();
+  let nextRequestId = 1;
 
   function reset() {
     if (deselectTimer !== null) {
@@ -22,6 +26,7 @@ const VP = (() => {
       deselectTimer = null;
     }
     profiles = [];
+    pendingRequests.clear();
     selectedProfileId = null;
     selectionMode = false;
     dragStart = null;
@@ -64,14 +69,25 @@ const VP = (() => {
     let totalVolume = 0;
     for (const item of rawLevels) {
       const index = Math.round(item.price / binSize);
-      levels.set(index, (levels.get(index) || 0) + item.volume);
+      const level = levels.get(index) || {volume: 0, bidVolume: 0, askVolume: 0};
+      level.volume += item.volume;
+      level.bidVolume += item.bidVolume;
+      level.askVolume += item.askVolume;
+      levels.set(index, level);
       weightedPriceVolume += item.price * item.volume;
       totalVolume += item.volume;
     }
     if (!totalVolume) return null;
 
     const rows = [...levels]
-      .map(([index, volume]) => ({index, price: priceAt(index), volume}))
+      .map(([index, level]) => ({
+        index,
+        price: priceAt(index),
+        volume: level.volume,
+        bidVolume: level.bidVolume,
+        askVolume: level.askVolume,
+        delta: level.askVolume - level.bidVolume,
+      }))
       .sort((a, b) => a.index - b.index);
     const pocRowIndex = rows.reduce(
       (best, row, index) => row.volume > rows[best].volume ? index : best,
@@ -85,14 +101,14 @@ const VP = (() => {
     const targetVolume = totalVolume * VALUE_AREA_FRACTION;
     while (valueAreaVolume < targetVolume &&
            (lowIndex > minIndex || highIndex < maxIndex)) {
-      const below = lowIndex > minIndex ? levels.get(lowIndex - 1) || 0 : -1;
-      const above = highIndex < maxIndex ? levels.get(highIndex + 1) || 0 : -1;
+      const below = lowIndex > minIndex ? levels.get(lowIndex - 1)?.volume || 0 : -1;
+      const above = highIndex < maxIndex ? levels.get(highIndex + 1)?.volume || 0 : -1;
       if (above > below) {
         highIndex++;
-        valueAreaVolume += levels.get(highIndex) || 0;
+        valueAreaVolume += levels.get(highIndex)?.volume || 0;
       } else {
         lowIndex--;
-        valueAreaVolume += levels.get(lowIndex) || 0;
+        valueAreaVolume += levels.get(lowIndex)?.volume || 0;
       }
     }
 
@@ -105,11 +121,35 @@ const VP = (() => {
       rows,
       totalVolume,
       maxVolume: rows.reduce((maximum, row) => Math.max(maximum, row.volume), 0),
+      maxAbsDelta: rows.reduce((maximum, row) => Math.max(maximum, Math.abs(row.delta)), 0),
       poc: priceAt(rows[pocRowIndex].index),
       valueAreaLow: priceAt(lowIndex),
       valueAreaHigh: priceAt(highIndex),
       vwap: weightedPriceVolume / totalVolume,
     };
+  }
+
+  function applyDeltaLevels(profile, deltaLevels) {
+    const sidesByBin = new Map();
+    for (const level of deltaLevels) {
+      const index = Math.round(level.price / binSize);
+      const sides = sidesByBin.get(index) || {bidVolume: 0, askVolume: 0};
+      sides.bidVolume += level.bidVolume;
+      sides.askVolume += level.askVolume;
+      sidesByBin.set(index, sides);
+    }
+    for (const row of profile.rows) {
+      const sides = sidesByBin.get(row.index);
+      if (!sides) continue;
+      row.bidVolume = sides.bidVolume;
+      row.askVolume = sides.askVolume;
+      row.delta = sides.askVolume - sides.bidVolume;
+    }
+    profile.maxAbsDelta = profile.rows.reduce(
+      (maximum, row) => Math.max(maximum, Math.abs(row.delta)), 0,
+    );
+    profile.deltaLevels = deltaLevels;
+    return profile;
   }
 
   function requestProfile(start, end, chartStart, chartEnd) {
@@ -137,7 +177,7 @@ const VP = (() => {
         previousVolume = null;
       } else if (tradingDay !== previousDay || previousVolume === null ||
                  tick.cumulativeVolume < previousVolume) {
-        volume = 0;
+        volume = tick.volume;
         previousVolume = tick.cumulativeVolume;
       } else {
         volume = tick.cumulativeVolume - previousVolume;
@@ -146,7 +186,12 @@ const VP = (() => {
       previousDay = tradingDay;
 
       if (tick.timestamp >= startMs && tick.timestamp <= endMs && volume > 0) {
-        rawLevels.push({price: tick.price, volume});
+        rawLevels.push({
+          price: tick.price,
+          volume,
+          bidVolume: 0,
+          askVolume: 0,
+        });
         tickCount++;
       }
     }
@@ -159,9 +204,73 @@ const VP = (() => {
     profile.chartStart = chartStart;
     profile.chartEnd = chartEnd;
     profile.id = nextProfileId++;
+    profile.deltaReady = false;
     profiles.push(profile);
+    draw();
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      updateStatus('Volume profile loaded locally; connect to load estimated delta');
+      return;
+    }
+    const requestId = `vp-${Date.now()}-${nextRequestId++}`;
+    pendingRequests.set(requestId, {instrumentKey, profileId: profile.id});
+    updateStatus('Volume profile loaded locally; loading estimated delta…');
+    ws.send(JSON.stringify({
+      type: 'load_volume_profile',
+      request_id: requestId,
+      instrument: instrumentKey,
+      start_time_ms: Math.round(startMs),
+      end_time_ms: Math.round(endMs),
+    }));
+  }
+
+  function handleProfileData(message) {
+    const request = pendingRequests.get(message.request_id);
+    if (!request) return;
+    pendingRequests.delete(message.request_id);
+    if (request.instrumentKey !== instrumentKey || message.instrument !== instrumentKey) return;
+
+    const currentProfile = profiles.find(profile => profile.id === request.profileId);
+    if (!currentProfile) return;
+    const sideVolumes = new Map();
+    for (const level of Array.isArray(message.levels) ? message.levels : []) {
+      const price = Number(level.price);
+      const bidVolume = Number(level.bid_volume);
+      const askVolume = Number(level.ask_volume);
+      if (!Number.isFinite(price) ||
+          !Number.isFinite(bidVolume) || bidVolume < 0 ||
+          !Number.isFinite(askVolume) || askVolume < 0) continue;
+      sideVolumes.set(price, {bidVolume, askVolume});
+    }
+    const deltaLevels = [...sideVolumes].map(([price, sides]) => ({
+      price,
+      ...sides,
+    }));
+    const updatedProfile = buildProfile(
+      currentProfile.start,
+      currentProfile.end,
+      currentProfile.rawLevels,
+      currentProfile.tickCount,
+    );
+    if (!updatedProfile) return;
+    applyDeltaLevels(updatedProfile, deltaLevels);
+    updatedProfile.chartStart = currentProfile.chartStart;
+    updatedProfile.chartEnd = currentProfile.chartEnd;
+    updatedProfile.id = currentProfile.id;
+    updatedProfile.deltaReady = true;
+    profiles = profiles.map(profile =>
+      profile.id === request.profileId ? updatedProfile : profile);
     updateStatus();
     draw();
+  }
+
+  function handleProfileError(message) {
+    const request = pendingRequests.get(message.request_id);
+    if (!request) return;
+    pendingRequests.delete(message.request_id);
+    const profile = profiles.find(item => item.id === request.profileId);
+    if (profile) profile.deltaError = message.message || 'Could not load historical delta';
+    updateStatus(profile?.deltaError || 'Could not load historical delta');
   }
 
   function priceAt(index) {
@@ -203,7 +312,7 @@ const VP = (() => {
     }
     if (!profiles.length) {
       status.textContent = historicalTicks.length
-        ? 'Select a chart range to profile loaded historical ticks'
+        ? 'Select a chart range to load estimated historical delta'
         : 'Load chart history to get historical ticks';
       status.title = status.textContent;
       return;
@@ -215,14 +324,16 @@ const VP = (() => {
       `${selectedProfile ? 'Selected profile · ' : ''}` +
       `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
       `POC ${formatPrice(statusProfile.poc)} · VWAP ${formatPrice(statusProfile.vwap)} · ` +
-      'Double-click to select; click to deselect; D to delete';
+      `${statusProfile.deltaReady ? 'Estimated Δ' : 'Δ pending'} · ` +
+      'double-click to select; click to deselect; D to delete';
     status.title =
       `${profiles.length} historical profile${profiles.length === 1 ? '' : 's'} · ` +
       `${formatDateTime(statusProfile.start)}–${formatDateTime(statusProfile.end)} · ` +
       `${statusProfile.tickCount.toLocaleString('en-IN')} tick updates · ` +
       `POC ${formatPrice(statusProfile.poc)} · ` +
       `VA ${formatPrice(statusProfile.valueAreaLow)}–${formatPrice(statusProfile.valueAreaHigh)} · ` +
-      `VWAP ${formatPrice(statusProfile.vwap)} · Volume ${formatVolume(statusProfile.totalVolume)}`;
+      `VWAP ${formatPrice(statusProfile.vwap)} · Volume ${formatVolume(statusProfile.totalVolume)} · ` +
+      `Estimated delta range ${formatVolume(statusProfile.maxAbsDelta)}`;
   }
 
   function updateSelectionMode() {
@@ -404,12 +515,32 @@ const VP = (() => {
       Math.min(plotRight, Math.min(position.startX, position.endX)));
     const rangeRight = Math.max(0,
       Math.min(plotRight, Math.max(position.startX, position.endX)));
-    const drawnProfileWidth = Math.min(profileWidth, rangeRight - rangeLeft);
+    const rangeWidth = rangeRight - rangeLeft;
+    const deltaColumnWidth = showDelta
+      ? Math.min(DELTA_COLUMN_MAX_WIDTH, rangeWidth * 0.3)
+      : 0;
+    const drawnProfileWidth = Math.min(profileWidth, rangeWidth - deltaColumnWidth);
     if (drawnProfileWidth < 1) return;
-    const barLeft = rangeLeft;
+    const barLeft = rangeLeft + deltaColumnWidth;
     const barRight = barLeft + drawnProfileWidth;
     const yTop = 0;
     const yBottom = canvas.clientHeight - 22;
+    const deltaBaselineX = rangeLeft + deltaColumnWidth;
+    const deltaMaxWidth = deltaColumnWidth - 4;
+
+    if (showDelta) {
+      ctx.strokeStyle = 'rgba(190, 205, 220, 0.42)';
+      ctx.lineWidth = Math.max(1, scale);
+      ctx.beginPath();
+      ctx.moveTo(deltaBaselineX, yTop);
+      ctx.lineTo(deltaBaselineX, yBottom);
+      ctx.stroke();
+      ctx.font = '600 9px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(190, 205, 220, 0.8)';
+      ctx.fillText('Δ', rangeLeft + deltaColumnWidth / 2, yTop + 2);
+    }
 
     for (const row of profile.rows) {
       const y = cSeries.priceToCoordinate(row.price);
@@ -418,6 +549,19 @@ const VP = (() => {
       if (y == null || yAbove == null || yBelow == null ||
           y < yTop - 2 || y > yBottom + 2) continue;
       const height = Math.max(1, Math.abs(yBelow - yAbove));
+      if (showDelta && profile.maxAbsDelta > 0 &&
+          deltaMaxWidth > 0 && row.delta !== 0) {
+        const deltaWidth = deltaMaxWidth * Math.abs(row.delta) / profile.maxAbsDelta;
+        ctx.fillStyle = row.delta > 0
+          ? 'rgba(0, 220, 130, 0.9)'
+          : 'rgba(255, 61, 90, 0.9)';
+        ctx.fillRect(
+          deltaBaselineX - deltaWidth,
+          y - height / 2,
+          deltaWidth,
+          height,
+        );
+      }
       const width = drawnProfileWidth * row.volume / profile.maxVolume;
       const inValueArea = row.price >= profile.valueAreaLow &&
         row.price <= profile.valueAreaHigh;
@@ -502,6 +646,7 @@ const VP = (() => {
       deselectTimer = null;
     }
     profiles = [];
+    pendingRequests.clear();
     selectedProfileId = null;
     selectionMode = false;
     dragStart = null;
@@ -535,9 +680,14 @@ const VP = (() => {
           profile.tickCount,
         );
         if (updated) {
+          if (profile.deltaReady && profile.deltaLevels) {
+            applyDeltaLevels(updated, profile.deltaLevels);
+          }
           updated.chartStart = profile.chartStart;
           updated.chartEnd = profile.chartEnd;
           updated.id = profile.id;
+          updated.deltaReady = profile.deltaReady;
+          updated.deltaError = profile.deltaError;
         }
         return updated;
       }).filter(Boolean);
@@ -555,6 +705,11 @@ const VP = (() => {
     draw();
   }
 
+  function setShowDelta(value) {
+    showDelta = Boolean(value);
+    draw();
+  }
+
   function init() {
     canvas = document.getElementById('vp-canvas');
     if (!canvas) return;
@@ -563,6 +718,8 @@ const VP = (() => {
     if (binSizeInput) binSizeInput.value = String(binSize);
     const widthInput = document.getElementById('vp-width');
     if (widthInput) widthInput.value = String(profileWidth);
+    const deltaInput = document.getElementById('vp-show-delta');
+    if (deltaInput) showDelta = deltaInput.checked;
     setWidth(profileWidth);
     canvas.addEventListener('pointerdown', beginDrag);
     canvas.addEventListener('pointermove', moveDrag);
@@ -592,8 +749,8 @@ const VP = (() => {
   }
 
   return {
-    init, reset, setInstrument, setHistoricalTicks,
-    startSelection, clear, draw, setBinSize, setWidth,
+    init, reset, setInstrument, setHistoricalTicks, handleProfileData, handleProfileError,
+    startSelection, clear, draw, setBinSize, setWidth, setShowDelta,
   };
 })();
 
