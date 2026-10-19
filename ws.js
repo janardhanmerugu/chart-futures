@@ -151,6 +151,7 @@ function connectWS() {
     }
     else if (t === 'tick') {
       if (!lwChart && !initCharts()) return;
+      VP.addLiveTick(msg.instrument, msg);
       updateLTP(msg.ltp);
       document.getElementById('s-last').textContent = fT(msg.ltt);
       if (msg.ltp != null && msg.vtt != null && msg.ltt != null) {
@@ -171,6 +172,8 @@ function connectWS() {
       renderSavedList(msg.datasets);
     }
     else if (t === 'history_data') { applyHistoryData(msg); }
+    else if (t === 'bubble_history') { applyBubbleHistory(msg); }
+    else if (t === 'bubble_history_error') { applyBubbleHistoryError(msg); }
     else if (t === 'volume_profile_data') { VP.handleProfileData(msg); }
     else if (t === 'volume_profile_error') { VP.handleProfileError(msg); }
     else if (t === 'futures_loading') {
@@ -199,6 +202,7 @@ function connectWS() {
   socket.onclose = () => {
     if (ws !== socket) return;
     try {
+      cancelBubbleRefresh();
       setStatus('idle','DISCONNECTED');
       document.getElementById('connectBtn').disabled    = false;
       document.getElementById('disconnectBtn').disabled = true;

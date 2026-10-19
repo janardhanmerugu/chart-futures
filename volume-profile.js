@@ -62,6 +62,44 @@ const VP = (() => {
     updateStatus();
   }
 
+  function addLiveTick(value, tick) {
+    if (value !== instrumentKey || !tick || typeof tick !== 'object') return;
+    const timestamp = Number(tick.ltt ?? tick.timestamp);
+    const price = Number(tick.ltp);
+    const volume = Number(tick.ltq ?? tick.contracts ?? 0);
+    const reportedCumulativeVolume = tick.vtt == null ? null : Number(tick.vtt);
+    const cumulativeVolume = reportedCumulativeVolume === 0
+      ? null
+      : reportedCumulativeVolume;
+    if (!Number.isFinite(timestamp) || timestamp <= 0 ||
+        !Number.isFinite(price) || price <= 0 ||
+        !Number.isFinite(volume) || volume < 0 ||
+        (cumulativeVolume !== null &&
+          (!Number.isFinite(cumulativeVolume) || cumulativeVolume < 0))) return;
+
+    const liveTick = {timestamp, price, cumulativeVolume, volume};
+    let low = 0;
+    let high = historicalTicks.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (historicalTicks[middle].timestamp <= timestamp) low = middle + 1;
+      else high = middle;
+    }
+
+    for (let index = low - 1;
+         index >= 0 && historicalTicks[index].timestamp === timestamp;
+         index--) {
+      const existing = historicalTicks[index];
+      if (existing.price === price &&
+          existing.cumulativeVolume === cumulativeVolume &&
+          existing.volume === volume) return;
+    }
+
+    const wasEmpty = historicalTicks.length === 0;
+    historicalTicks.splice(low, 0, liveTick);
+    if (wasEmpty) updateStatus();
+  }
+
   function buildProfile(start, end, rawLevels, tickCount) {
     if (!rawLevels.length) return null;
     const levels = new Map();
@@ -750,7 +788,8 @@ const VP = (() => {
   }
 
   return {
-    init, reset, setInstrument, setHistoricalTicks, handleProfileData, handleProfileError,
+    init, reset, setInstrument, setHistoricalTicks, addLiveTick,
+    handleProfileData, handleProfileError,
     startSelection, clear, draw, setBinSize, setWidth, setShowDelta,
   };
 })();

@@ -72,7 +72,10 @@ const AGBUB = {
     const timeSec = Math.floor(+timeEpochMs / 1000);
     const lots = Math.round(contracts / LOT_SIZE); // convert contracts → lots for display & sizing
 
-    this.items.push({ time: timeSec, timeMs: +timeEpochMs, ltp, contracts, lots, type });
+    this.items.push({
+      time: timeSec, timeMs: +timeEpochMs, ltp, contracts, lots, type,
+      source: contractsOverride == null ? 'live' : 'history',
+    });
     if (this.items.length > this.MAX) this.items.shift();
     const sb = document.getElementById('s-bubs'); if (sb) sb.textContent = this.items.length;
     if (drawNow) this.draw();

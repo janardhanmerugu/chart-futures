@@ -31,6 +31,116 @@ function toggleBubbles() {
   setBubblesVisible(!bubOn);
 }
 
+let bubbleRefreshRequestId = 0;
+let bubbleRefreshPending = false;
+
+function refreshBubbles() {
+  const button = document.getElementById('bub-refresh-btn');
+  if (!selSym) {
+    showAlert('warn', '⚠ Select and load an instrument before refreshing bubbles.');
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showAlert('err', '⚠ Connect to the server before refreshing bubbles.');
+    return;
+  }
+  const startDate = document.getElementById('chart-history-from').value;
+  const endDate = document.getElementById('chart-history-to').value;
+  if (!startDate || !endDate || startDate > endDate) {
+    showAlert('warn', '⚠ Choose a valid chart history date range.');
+    return;
+  }
+  if (bubbleRefreshPending) return;
+
+  bubbleRefreshPending = true;
+  const requestId = ++bubbleRefreshRequestId;
+  if (button) {
+    button.disabled = true;
+    button.textContent = '…';
+  }
+  ws.send(JSON.stringify({
+    type: 'load_bubble_history',
+    instrument: selSym,
+    start_date: startDate,
+    end_date: endDate,
+    request_id: requestId,
+  }));
+}
+
+function finishBubbleRefresh(requestId) {
+  if (requestId !== bubbleRefreshRequestId) return false;
+  bubbleRefreshPending = false;
+  const button = document.getElementById('bub-refresh-btn');
+  if (button) {
+    button.disabled = false;
+    button.textContent = '↻';
+  }
+  return true;
+}
+
+function cancelBubbleRefresh() {
+  if (!bubbleRefreshPending) return;
+  bubbleRefreshRequestId++;
+  bubbleRefreshPending = false;
+  const button = document.getElementById('bub-refresh-btn');
+  if (button) {
+    button.disabled = false;
+    button.textContent = '↻';
+  }
+}
+
+function applyBubbleHistory(msg) {
+  if (!finishBubbleRefresh(msg.request_id)) return;
+  if (msg.instrument !== selSym) return;
+
+  const ticks = Array.isArray(msg.ticks) ? msg.ticks : [];
+  const latestHistoryTime = ticks.reduce(
+    (latest, tick) => Math.max(latest, Number(tick.timestamp) || 0), 0,
+  );
+  const rangeStart = Date.parse(`${msg.start_date}T00:00:00+05:30`);
+  const rangeEnd = Date.parse(`${msg.end_date}T00:00:00+05:30`) + 86400000;
+  const liveItems = AGBUB.items.filter(item =>
+    item.source === 'live' &&
+    item.timeMs >= rangeStart && item.timeMs < rangeEnd,
+  );
+  const livePrevVtt = AGBUB.prevVtt;
+  const livePrevTime = AGBUB.prevTimeEpochMs;
+
+  AGBUB.clear();
+  ticks.forEach(t => AGBUB.push(
+    t.ltp, t.best_ask, t.best_bid, t.vtt, t.timestamp, false, t.contracts,
+  ));
+  const existingTicks = new Set(AGBUB.items.map(item =>
+    `${item.timeMs}:${item.ltp}:${item.contracts}:${item.type}`,
+  ));
+  liveItems.forEach(item => {
+    const key = `${item.timeMs}:${item.ltp}:${item.contracts}:${item.type}`;
+    if (!existingTicks.has(key)) {
+      AGBUB.items.push(item);
+      existingTicks.add(key);
+    }
+  });
+  if (AGBUB.items.length > AGBUB.MAX) {
+    AGBUB.items.splice(0, AGBUB.items.length - AGBUB.MAX);
+  }
+  if (livePrevTime != null && livePrevTime >= latestHistoryTime) {
+    AGBUB.prevVtt = livePrevVtt;
+    AGBUB.prevTimeEpochMs = livePrevTime;
+  }
+  const bubbleCount = document.getElementById('s-bubs');
+  if (bubbleCount) bubbleCount.textContent = AGBUB.items.length;
+  AGBUB.draw();
+
+  showAlert(ticks.length ? 'ok' : 'warn', ticks.length
+    ? `✅ Refreshed bubbles from ${ticks.length} saved ticks (${AGBUB.items.length} visible bubbles).`
+    : '⚠ No saved ticks found for the selected instrument and date range.');
+}
+
+function applyBubbleHistoryError(msg) {
+  if (!finishBubbleRefresh(msg.request_id)) return;
+  showAlert('err', '⚠ Bubble refresh failed: ' + (msg.message || 'unknown error'), false);
+}
+
 // ──── Crosshair Mode ────
 let crosshairMagnet = false;
 function toggleCrosshair() {

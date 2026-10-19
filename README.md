@@ -48,8 +48,9 @@ for that historical time range. The volume histogram, point of control (POC),
 70% value area (VAH/VAL), and volume-weighted average price (VWAP) are
 calculated locally from the loaded historical ticks. The backend is requested
 only for historical Bid/Ask aggressor-side data used in delta; its volume
-totals are not used for the histogram. Live ticks do not change an existing
-profile. Delta bars appear to the left of the volume histogram: green is
+totals are not used for the histogram. Live ticks are included in newly drawn
+profiles for the active instrument; an existing profile remains fixed after
+creation. Delta bars appear to the left of the volume histogram: green is
 positive (Ask minus Bid), red is negative. The backend classifies stored
 tick-volume estimates using each row's saved bid/ask and falls back to the tick
 rule when quotes do not determine a side, so delta is not exact trade-by-trade.
@@ -72,6 +73,12 @@ it to delete that rectangle. Use **Clear rectangles** to remove all drawn
 areas. You can draw across empty time slots and into future chart space. Press
 **Escape** to cancel drawing. Rectangles are cleared when the selected
 instrument or loaded history changes.
+
+## Refreshing Bubbles
+
+Use the **↻** button beside the **Bubbles** checkbox to reload saved tick data
+for the selected instrument and the current history date range. This refreshes
+the bubble overlay without reloading candles or clearing chart drawings.
 
 ## Oracle Cloud Deployment
 

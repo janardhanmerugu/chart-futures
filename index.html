@@ -152,6 +152,9 @@
             <input id="bubbles-toggle" type="checkbox" checked onchange="setBubblesVisible(this.checked)"/>
             Bubbles
           </label>
+          <button class="bub-btn" id="bub-refresh-btn" type="button" onclick="refreshBubbles()"
+            title="Reload bubble data for the selected instrument and history range"
+            aria-label="Refresh bubbles" style="width:auto;margin-left:auto;padding:.1rem .35rem">↻</button>
         </div>
         <div style="display:flex;gap:.3rem">
           <button class="bub-btn" id="bubBtn" onclick="toggleBubbles()" style="flex:1">● ON</button>
@@ -415,12 +418,12 @@
 
 <script src="lightweight-loader.js?v=20260917-3"></script>
 <script src="config.js?v=20260917-3"></script>
-<script src="bubbles.js?v=20260917-3"></script>
+<script src="bubbles.js?v=20261019-1"></script>
 <script src="chart.js?v=20261017-3"></script>
-<script src="volume-profile.js?v=20261017-5"></script>
+<script src="volume-profile.js?v=20261019-1"></script>
 <script src="rectangle-draw.js?v=20261017-5"></script>
-<script src="ui.js?v=20261017-1"></script>
-<script src="ws.js?v=20261017-2"></script>
+<script src="ui.js?v=20261019-1"></script>
+<script src="ws.js?v=20261019-1"></script>
 <script src="init.js?v=20261017-2"></script>
 </body>
 </html>
