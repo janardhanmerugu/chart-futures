@@ -643,7 +643,9 @@ function setReplayState(state, message) {
   if (date) date.disabled = active;
   if (speed) speed.disabled = active;
   if (pause) {
-    pause.disabled = state !== 'playing' && state !== 'paused';
+    const canPause = state === 'playing' || state === 'paused';
+    pause.hidden = !canPause;
+    pause.disabled = !canPause;
     pause.textContent = state === 'paused' ? '▶ Resume' : 'Ⅱ Pause';
   }
   if (stop) stop.disabled = !active || state === 'stopping';

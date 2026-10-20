@@ -31,6 +31,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .replay-controls .hist-date,.replay-select{width:100%;min-width:0;padding:.28rem .35rem;background:#070d16;border:1px solid var(--border);border-radius:4px;color:var(--text);font:600 .62rem 'JetBrains Mono',monospace;color-scheme:dark}
 .replay-buttons{grid-column:1/-1;display:flex;gap:.3rem}
 .replay-buttons .hbtn{flex:1;padding:.28rem .35rem;font-size:.6rem}
+.replay-buttons .hbtn[hidden]{display:none}
 #replay-status{grid-column:1/-1;min-height:1.2em;line-height:1.4;color:var(--muted)}
 #replay-status.error{color:var(--red)}
 #replay-status.active{color:var(--accent)}
