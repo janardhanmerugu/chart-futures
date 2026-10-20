@@ -110,6 +110,7 @@ function connectWS() {
       document.getElementById('sym-disp').textContent = msg.symbol;
     }
     else if (t === 'symbol_history') {
+      if (replayState !== 'idle') setReplayState('idle', 'Live chart loaded.');
       if (!lwChart && !initCharts()) return;
       applySymbolHistory(msg);
       historyReadyForSubscribe = true;
@@ -140,6 +141,8 @@ function connectWS() {
       }
     }
     else if (t === 'candle') {
+      if (msg.replay &&
+          (!['loading', 'playing', 'paused'].includes(replayState) || msg.instrument !== selSym)) return;
       if (!lwChart && !initCharts()) return;
       const chartCandle = msg.candle;
       upsertCandle(chartCandle, false);
@@ -150,6 +153,8 @@ function connectWS() {
       requestAnimationFrame(() => AGBUB.draw());
     }
     else if (t === 'tick') {
+      if (msg.replay &&
+          (!['loading', 'playing', 'paused'].includes(replayState) || msg.instrument !== selSym)) return;
       if (!lwChart && !initCharts()) return;
       VP.addLiveTick(msg.instrument, msg);
       updateLTP(msg.ltp);
@@ -172,6 +177,15 @@ function connectWS() {
       renderSavedList(msg.datasets);
     }
     else if (t === 'history_data') { applyHistoryData(msg); }
+    else if (t === 'replay_started') { handleReplayStarted(msg); }
+    else if (t === 'replay_paused') { setReplayState('paused', 'Replay paused.'); }
+    else if (t === 'replay_resumed') {
+      const speed = Number(document.getElementById('replay-speed').value) || 1;
+      setReplayState('playing', `▶ ${msg.instrument || selSym} · ${speed}×`);
+    }
+    else if (t === 'replay_stopped') { setReplayState('idle', 'Replay stopped.'); }
+    else if (t === 'replay_complete') { handleReplayComplete(msg); }
+    else if (t === 'replay_error') { handleReplayError(msg); }
     else if (t === 'bubble_history') { applyBubbleHistory(msg); }
     else if (t === 'bubble_history_error') { applyBubbleHistoryError(msg); }
     else if (t === 'volume_profile_data') { VP.handleProfileData(msg); }
@@ -209,6 +223,7 @@ function connectWS() {
       document.getElementById('saveTokenBtn').disabled  = true;
       document.getElementById('loadBtn').disabled       = true;
       if(tpsTmr){clearInterval(tpsTmr);tpsTmr=null;}
+      if (replayState !== 'idle') setReplayState('idle', 'Disconnected.');
       const tpsEl = document.getElementById('s-tps'); if (tpsEl) tpsEl.textContent = '—';
       renderActiveSubscriptions([]);
       tokSaved=false; setTok(null,'Disconnected.');

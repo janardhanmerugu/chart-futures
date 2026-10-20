@@ -19,6 +19,7 @@ window.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('chart-history-from').value = localDateValue(oneDayAgo);
   document.getElementById('chart-history-to').value = localDateValue(today);
+  document.getElementById('replay-date').value = localDateValue(today);
   document.getElementById('sr-date-from').value = localDateValue(oneDayAgo);
   document.getElementById('sr-date-to').value = localDateValue(today);
 

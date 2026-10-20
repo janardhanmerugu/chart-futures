@@ -80,6 +80,16 @@ Use the **↻** button beside the **Bubbles** checkbox to reload saved tick data
 for the selected instrument and the current history date range. This refreshes
 the bubble overlay without reloading candles or clearing chart drawings.
 
+## Tick Replay
+
+Connect to the WebSocket server, select a futures contract, choose a trading
+date, chart interval, and playback speed, then click **Replay** in the sidebar.
+The server streams that session's stored PostgreSQL ticks in timestamp order;
+**Pause/Resume** and **Stop** control playback. Replay uses Asia/Kolkata date
+boundaries and requires a complete saved session of no more than
+`MAX_HISTORY_TICKS` (default 200,000). It does not place orders. Load a live
+chart again to return that browser session to the live feed.
+
 ## Oracle Cloud Deployment
 
 The production WebSocket server runs on the Oracle Cloud VM at `/opt/upstox-chart`.

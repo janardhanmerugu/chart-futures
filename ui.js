@@ -528,6 +528,7 @@ function setFutBtn(pfx, key, expLabel) {
 function pickFut(pfx) {
   const key = futKeys[pfx];
   if (!key) return;
+  stopReplayForSelectionChange();
   document.querySelectorAll('.fbtn,.sbtn').forEach(b => b.classList.remove('active'));
   document.getElementById('fbtn-' + pfx).classList.add('active');
   document.getElementById('custom-sym').value = '';
@@ -579,6 +580,7 @@ function applyLotSizeForSelection(value) {
 }
 
 function pickSym(k,btn) {
+  stopReplayForSelectionChange();
   selSym = k;
   document.getElementById('custom-sym').value = '';
   document.querySelectorAll('.sbtn,.fbtn').forEach(b => b.classList.remove('active'));
@@ -586,7 +588,11 @@ function pickSym(k,btn) {
   applyLotSizeForSelection(k);
 }
 
-function pickIv(v) { selIv=v; document.querySelectorAll('.ivbtn').forEach(b=>b.classList.toggle('active',+b.dataset.iv===v)); }
+function pickIv(v) {
+  stopReplayForSelectionChange();
+  selIv = v;
+  document.querySelectorAll('.ivbtn').forEach(b => b.classList.toggle('active', +b.dataset.iv === v));
+}
 function loadSym() {
   const c=document.getElementById('custom-sym').value.trim();
   if(c){selSym=c; document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));}
@@ -597,6 +603,10 @@ function loadSym() {
   const endDate = document.getElementById('chart-history-to').value;
   if (!startDate || !endDate || startDate > endDate) {
     showAlert('warn','⚠ Choose a valid chart history date range.'); return;
+  }
+  if (replayState !== 'idle') {
+    ws.send(JSON.stringify({type: 'replay_stop'}));
+    setReplayState('idle', 'Loading live chart…');
   }
   clearAlerts();
   aggBucket = null;
@@ -615,6 +625,115 @@ function loadSym() {
     type: 'load_symbol_history', instrument: selSym, interval: selIv,
     start_date: startDate, end_date: endDate,
   }));
+}
+
+let replayState = 'idle';
+
+function setReplayState(state, message) {
+  replayState = state;
+  const start = document.getElementById('replay-start-btn');
+  const pause = document.getElementById('replay-pause-btn');
+  const stop = document.getElementById('replay-stop-btn');
+  const status = document.getElementById('replay-status');
+  const active = state === 'loading' || state === 'playing' ||
+    state === 'paused' || state === 'stopping';
+  if (start) start.disabled = active;
+  const date = document.getElementById('replay-date');
+  const speed = document.getElementById('replay-speed');
+  if (date) date.disabled = active;
+  if (speed) speed.disabled = active;
+  if (pause) {
+    pause.disabled = state !== 'playing' && state !== 'paused';
+    pause.textContent = state === 'paused' ? '▶ Resume' : 'Ⅱ Pause';
+  }
+  if (stop) stop.disabled = !active || state === 'stopping';
+  if (status) {
+    status.textContent = message || 'Select a futures contract and date.';
+    status.classList.toggle('error', state === 'error');
+    status.classList.toggle('active', state === 'loading' || state === 'playing' || state === 'paused');
+  }
+}
+
+function startReplay() {
+  if (!selSym) {
+    showAlert('warn', '⚠ Select a futures contract before starting replay.');
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showAlert('err', '⚠ Connect to the server before starting replay.');
+    return;
+  }
+  const date = document.getElementById('replay-date').value;
+  if (!date) {
+    showAlert('warn', '⚠ Choose a trading date for replay.');
+    return;
+  }
+  if (!lwChart && !initCharts()) return;
+  clearAlerts();
+  cancelBubbleRefresh();
+  aggBucket = null;
+  historyReadyForSubscribe = false;
+  AGBUB.clear();
+  VP.setInstrument(selSym);
+  VP.reset();
+  RD.clear();
+  cData = [];
+  vData = [];
+  cMap = {};
+  resetChartTimeMapping();
+  cSeries.setData([]);
+  vSeries.setData([]);
+  setLiveMode(true);
+  document.getElementById('s-sym').textContent = selSym;
+  document.getElementById('s-iv').textContent = ivLabel(selIv);
+  document.getElementById('sym-disp').textContent = selSym;
+  setReplayState('loading', `Loading ${selSym} ticks for ${date}…`);
+  ws.send(JSON.stringify({
+    type: 'replay_start',
+    instrument: selSym,
+    date,
+    interval: selIv,
+    speed: Number(document.getElementById('replay-speed').value),
+  }));
+}
+
+function stopReplayForSelectionChange() {
+  if (replayState === 'idle' || replayState === 'error') return;
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({type: 'replay_stop'}));
+  setReplayState('idle', 'Replay stopped.');
+}
+
+function toggleReplayPause() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  if (replayState === 'playing') ws.send(JSON.stringify({type: 'replay_pause'}));
+  else if (replayState === 'paused') ws.send(JSON.stringify({type: 'replay_resume'}));
+}
+
+function stopReplay() {
+  if (!ws || ws.readyState !== WebSocket.OPEN || replayState === 'idle') return;
+  ws.send(JSON.stringify({type: 'replay_stop'}));
+  setReplayState('stopping', 'Stopping replay…');
+}
+
+function handleReplayStarted(message) {
+  if (message.instrument !== selSym || replayState !== 'loading') return;
+  const speed = Number(message.speed) || 1;
+  setReplayState('playing',
+    `▶ ${message.date} · ${Number(message.tick_count).toLocaleString()} ticks · ${speed}×`);
+  showAlert('ok', `⏪ Replaying ${message.instrument} for ${message.date} at ${speed}×.`);
+}
+
+function handleReplayComplete(message) {
+  if (message.instrument !== selSym) return;
+  setReplayState('idle',
+    `Replay complete · ${Number(message.tick_count).toLocaleString()} ticks.`);
+  showAlert('ok', `✅ Replay complete — ${Number(message.tick_count).toLocaleString()} ticks.`);
+}
+
+function handleReplayError(message) {
+  setReplayState('error', message.message || 'Replay failed.');
+  showAlert('err', `⚠ Replay failed: ${message.message || 'unknown error'}`, false);
 }
 
 let activeSubscriptions = [];
