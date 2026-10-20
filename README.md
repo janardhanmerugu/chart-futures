@@ -83,7 +83,8 @@ the bubble overlay without reloading candles or clearing chart drawings.
 ## Tick Replay
 
 Connect to the WebSocket server, select a futures contract, choose a trading
-date, chart interval, and playback speed, then click **Replay** in the sidebar.
+date, chart interval, and playback speed in the **Tick Replay** panel of the
+right-side drawer, then click **Replay**.
 The server streams that session's stored PostgreSQL ticks in timestamp order;
 **Pause/Resume** and **Stop** control playback. Replay uses Asia/Kolkata date
 boundaries and requires a complete saved session of no more than

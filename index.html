@@ -6,7 +6,7 @@
   <title>Upstox Futures Chart</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=20261020-1">
+  <link rel="stylesheet" href="style.css?v=20261020-2">
 </head>
 <body>
 
@@ -84,29 +84,6 @@
           border:1px solid var(--border);border-radius:6px;
           padding:.3rem .35rem;background:#080d16;
         "></div>
-      </div>
-    </div>
-
-    <div class="drawer-section" id="replay-panel">
-      <div class="drawer-section-title">⏪ Tick Replay</div>
-      <div class="replay-controls">
-        <label for="replay-date">Trading date</label>
-        <input id="replay-date" class="hist-date" type="date"/>
-        <label for="replay-speed">Playback speed</label>
-        <select id="replay-speed" class="replay-select">
-          <option value="1">1×</option>
-          <option value="5">5×</option>
-          <option value="20">20×</option>
-          <option value="50">50×</option>
-          <option value="100">100×</option>
-          <option value="500">500×</option>
-        </select>
-        <div class="replay-buttons">
-          <button id="replay-start-btn" class="hbtn primary" type="button" onclick="startReplay()">▶ Replay</button>
-          <button id="replay-pause-btn" class="hbtn ghost" type="button" onclick="toggleReplayPause()" disabled>Ⅱ Pause</button>
-          <button id="replay-stop-btn" class="hbtn danger" type="button" onclick="stopReplay()" disabled>■ Stop</button>
-        </div>
-        <span id="replay-status" aria-live="polite">Select a futures contract and date.</span>
       </div>
     </div>
 
@@ -307,8 +284,8 @@
 
   <!-- RIGHT DRAWER: futures bubbles and sticky support/resistance controls. -->
   <aside id="right-drawer" class="collapsed">
-    <div id="right-drawer-top" title="Futures bubble controls">
-      <div id="right-drawer-title"><span>◉</span><span>FUTURES BUBBLES</span></div>
+    <div id="right-drawer-top" title="Futures chart tools">
+      <div id="right-drawer-title"><span>◉</span><span>FUTURES TOOLS</span></div>
     </div>
     <div id="right-drawer-content">
       <section class="right-panel" id="volume-profile-panel">
@@ -427,6 +404,36 @@
           </div>
         </div>
       </section>
+
+      <section class="right-panel" id="replay-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true"
+          aria-controls="replay-panel-body"
+          onclick="toggleRightPanel('replay-panel')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('replay-panel')}">
+          <span><span class="right-panel-icon">▶</span> TICK REPLAY</span><span class="panel-chevron">−</span>
+        </div>
+        <div class="right-panel-body" id="replay-panel-body">
+          <div class="replay-controls">
+            <label for="replay-date">Trading date</label>
+            <input id="replay-date" class="hist-date" type="date"/>
+            <label for="replay-speed">Playback speed</label>
+            <select id="replay-speed" class="replay-select">
+              <option value="1">1×</option>
+              <option value="5">5×</option>
+              <option value="20">20×</option>
+              <option value="50">50×</option>
+              <option value="100">100×</option>
+              <option value="500">500×</option>
+            </select>
+            <div class="replay-buttons">
+              <button id="replay-start-btn" class="hbtn primary" type="button" onclick="startReplay()">▶ Replay</button>
+              <button id="replay-pause-btn" class="hbtn ghost" type="button" onclick="toggleReplayPause()" disabled>Ⅱ Pause</button>
+              <button id="replay-stop-btn" class="hbtn danger" type="button" onclick="stopReplay()" disabled>■ Stop</button>
+            </div>
+            <span id="replay-status" aria-live="polite">Select a futures contract and date.</span>
+          </div>
+        </div>
+      </section>
     </div>
   </aside>
   <button id="right-drawer-toggle" class="collapsed" onclick="toggleRightDrawer()" title="Toggle futures bubble panel">‹</button>
@@ -445,7 +452,7 @@
 <script src="chart.js?v=20261017-3"></script>
 <script src="volume-profile.js?v=20261019-1"></script>
 <script src="rectangle-draw.js?v=20261017-5"></script>
-<script src="ui.js?v=20261020-1"></script>
+<script src="ui.js?v=20261020-2"></script>
 <script src="ws.js?v=20261020-1"></script>
 <script src="init.js?v=20261017-2"></script>
 </body>
