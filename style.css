@@ -115,6 +115,9 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
 .panel-chevron{flex:0 0 auto;margin-left:auto;color:var(--accent);font-size:.9rem;font-weight:400;letter-spacing:0}
 .right-panel-body{display:flex;flex-direction:column;gap:.55rem;padding:.65rem .75rem .75rem;border-top:1px solid #1a2a40}
 .right-panel-body[hidden]{display:none}
+.drawing-tool-group{display:flex;flex-direction:column;gap:.55rem;margin-top:.15rem;padding-top:.65rem;border-top:1px solid #1a2a40}
+.drawing-tool-subtitle{display:flex;align-items:center;color:var(--muted);font-size:.57rem;font-weight:700;letter-spacing:.08em}
+.drawing-tool-subtitle .right-panel-icon{font-size:.7rem}
 #futures-bubble-panel #ag-circle-panel{display:flex;flex-direction:column;gap:.55rem;width:100%;padding:0;background:transparent}
 #futures-bubble-panel #ag-circle-panel>.sgl{display:none}
 #bubble-metrics{display:flex;flex-direction:column;gap:.45rem;padding-top:.15rem;border-top:1px solid #1a2a40}

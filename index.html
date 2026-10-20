@@ -6,7 +6,7 @@
   <title>Upstox Futures Chart</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=20261020-2">
+  <link rel="stylesheet" href="style.css?v=20261020-3">
 </head>
 <body>
 
@@ -288,42 +288,6 @@
       <div id="right-drawer-title"><span>◉</span><span>FUTURES TOOLS</span></div>
     </div>
     <div id="right-drawer-content">
-      <section class="right-panel" id="volume-profile-panel">
-        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="volume-profile-body"
-          onclick="toggleRightPanel('volume-profile-panel')"
-          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('volume-profile-panel')}">
-          <span><span class="right-panel-icon">▥</span> VOLUME PROFILE</span><span class="panel-chevron">−</span>
-        </div>
-        <div class="right-panel-body" id="volume-profile-body">
-          <div id="volume-profile-controls">
-            <button class="vp-btn" id="vp-range-btn" type="button" title="Select a historical profile range (Q)" onclick="VP.startSelection()">Select Range</button>
-            <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
-          </div>
-          <label class="vp-delta-toggle" for="vp-show-delta">
-            <input id="vp-show-delta" type="checkbox" checked onchange="VP.setShowDelta(this.checked)"/>
-            <span>Show delta</span>
-          </label>
-          <label class="vp-setting" for="vp-bin-size">
-            <span>Price bin Δ</span>
-            <select id="vp-bin-size" onchange="VP.setBinSize(this.value)">
-              <option value="0.05">0.05</option>
-              <option value="0.1">0.1</option>
-              <option value="0.25">0.25</option>
-              <option value="0.5" selected>0.5</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="5">5</option>
-            </select>
-          </label>
-          <label class="vp-setting" for="vp-width">
-            <span>Profile width <strong id="vp-width-value">150 px</strong></span>
-            <input id="vp-width" type="range" min="60" max="280" step="10" value="150"
-              oninput="VP.setWidth(this.value)"/>
-          </label>
-          <span id="vp-status" aria-live="polite">Load chart history to get historical ticks</span>
-        </div>
-      </section>
-
       <section class="right-panel" id="chart-drawing-panel">
         <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true"
           aria-controls="chart-drawing-body"
@@ -335,9 +299,12 @@
           <div id="chart-drawing-controls">
             <button id="draw-rectangle-btn" class="vp-btn" type="button"
               aria-pressed="false" title="Draw one rectangle (R)"
-              onclick="RD.toggleDrawing()">Draw one rectangle (R)</button>
+              onclick="RD.toggleDrawing('rectangle')">Draw one rectangle (R)</button>
+            <button id="draw-trendline-btn" class="vp-btn" type="button"
+              aria-pressed="false" title="Draw one trend line (T)"
+              onclick="RD.toggleDrawing('trendline')">Draw trend line (T)</button>
             <button class="vp-btn vp-clear-btn" type="button"
-              onclick="RD.clear()">Clear rectangles</button>
+              onclick="RD.clear()">Clear drawings</button>
           </div>
           <div class="rect-color-picker" role="group" aria-label="Rectangle fill color">
             <span>Fill color</span>
@@ -348,7 +315,36 @@
               data-color="#00e676" aria-label="Green fill" aria-pressed="false"
               title="Green fill" onclick="RD.setColor('#00e676')"></button>
           </div>
-          <span class="drawing-hint">Press R, then drag once. Click a rectangle to select; double-click it to delete.</span>
+          <span class="drawing-hint">Press R for a rectangle or T for a trend line, then drag once. Click to select; double-click to delete.</span>
+          <div class="drawing-tool-group">
+            <div class="drawing-tool-subtitle"><span class="right-panel-icon">▥</span> VOLUME PROFILE</div>
+            <div id="volume-profile-controls">
+              <button class="vp-btn" id="vp-range-btn" type="button" title="Select a historical profile range (Q)" onclick="VP.startSelection()">Select Range</button>
+              <button class="vp-btn vp-clear-btn" type="button" onclick="VP.clear()">Clear</button>
+            </div>
+            <label class="vp-delta-toggle" for="vp-show-delta">
+              <input id="vp-show-delta" type="checkbox" checked onchange="VP.setShowDelta(this.checked)"/>
+              <span>Show delta</span>
+            </label>
+            <label class="vp-setting" for="vp-bin-size">
+              <span>Price bin Δ</span>
+              <select id="vp-bin-size" onchange="VP.setBinSize(this.value)">
+                <option value="0.05">0.05</option>
+                <option value="0.1">0.1</option>
+                <option value="0.25">0.25</option>
+                <option value="0.5" selected>0.5</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="5">5</option>
+              </select>
+            </label>
+            <label class="vp-setting" for="vp-width">
+              <span>Profile width <strong id="vp-width-value">150 px</strong></span>
+              <input id="vp-width" type="range" min="60" max="280" step="10" value="150"
+                oninput="VP.setWidth(this.value)"/>
+            </label>
+            <span id="vp-status" aria-live="polite">Load chart history to get historical ticks</span>
+          </div>
         </div>
       </section>
 
@@ -417,7 +413,7 @@
             <label for="replay-date">Trading date</label>
             <input id="replay-date" class="hist-date" type="date"/>
             <label for="replay-speed">Playback speed</label>
-            <select id="replay-speed" class="replay-select">
+            <select id="replay-speed" class="replay-select" onchange="changeReplaySpeed()">
               <option value="1">1×</option>
               <option value="5">5×</option>
               <option value="20">20×</option>
@@ -451,8 +447,8 @@
 <script src="bubbles.js?v=20261019-1"></script>
 <script src="chart.js?v=20261017-3"></script>
 <script src="volume-profile.js?v=20261019-1"></script>
-<script src="rectangle-draw.js?v=20261017-5"></script>
-<script src="ui.js?v=20261020-3"></script>
+<script src="rectangle-draw.js?v=20261020-2"></script>
+<script src="ui.js?v=20261020-4"></script>
 <script src="ws.js?v=20261020-1"></script>
 <script src="init.js?v=20261017-2"></script>
 </body>

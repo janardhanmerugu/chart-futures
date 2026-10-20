@@ -183,6 +183,7 @@ function connectWS() {
       const speed = Number(document.getElementById('replay-speed').value) || 1;
       setReplayState('playing', `▶ ${msg.instrument || selSym} · ${speed}×`);
     }
+    else if (t === 'replay_speed_changed') { handleReplaySpeedChanged(msg); }
     else if (t === 'replay_stopped') { setReplayState('idle', 'Replay stopped.'); }
     else if (t === 'replay_complete') { handleReplayComplete(msg); }
     else if (t === 'replay_error') { handleReplayError(msg); }

@@ -628,6 +628,7 @@ function loadSym() {
 }
 
 let replayState = 'idle';
+let replayTickCount = 0;
 
 function setReplayState(state, message) {
   replayState = state;
@@ -641,7 +642,7 @@ function setReplayState(state, message) {
   const date = document.getElementById('replay-date');
   const speed = document.getElementById('replay-speed');
   if (date) date.disabled = active;
-  if (speed) speed.disabled = active;
+  if (speed) speed.disabled = state !== 'playing' && state !== 'paused';
   if (pause) {
     const canPause = state === 'playing' || state === 'paused';
     pause.hidden = !canPause;
@@ -712,6 +713,18 @@ function toggleReplayPause() {
   else if (replayState === 'paused') ws.send(JSON.stringify({type: 'replay_resume'}));
 }
 
+function changeReplaySpeed() {
+  if (replayState !== 'playing' && replayState !== 'paused') return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showAlert('err', '⚠ Not connected. Cannot change replay speed.');
+    return;
+  }
+  ws.send(JSON.stringify({
+    type: 'replay_speed',
+    speed: Number(document.getElementById('replay-speed').value),
+  }));
+}
+
 function stopReplay() {
   if (!ws || ws.readyState !== WebSocket.OPEN || replayState === 'idle') return;
   ws.send(JSON.stringify({type: 'replay_stop'}));
@@ -721,13 +734,26 @@ function stopReplay() {
 function handleReplayStarted(message) {
   if (message.instrument !== selSym || replayState !== 'loading') return;
   const speed = Number(message.speed) || 1;
+  replayTickCount = Number(message.tick_count) || 0;
+  document.getElementById('replay-speed').value = String(speed);
   setReplayState('playing',
-    `▶ ${message.date} · ${Number(message.tick_count).toLocaleString()} ticks · ${speed}×`);
+    `▶ ${message.date} · ${replayTickCount.toLocaleString()} ticks · ${speed}×`);
   showAlert('ok', `⏪ Replaying ${message.instrument} for ${message.date} at ${speed}×.`);
+}
+
+function handleReplaySpeedChanged(message) {
+  if (replayState !== 'playing' && replayState !== 'paused') return;
+  const speed = Number(message.speed);
+  if (!Number.isFinite(speed)) return;
+  const date = document.getElementById('replay-date').value;
+  const prefix = replayState === 'paused' ? 'Ⅱ Paused' : '▶';
+  setReplayState(replayState,
+    `${prefix} ${date} · ${replayTickCount.toLocaleString()} ticks · ${speed}×`);
 }
 
 function handleReplayComplete(message) {
   if (message.instrument !== selSym) return;
+  replayTickCount = 0;
   setReplayState('idle',
     `Replay complete · ${Number(message.tick_count).toLocaleString()} ticks.`);
   showAlert('ok', `✅ Replay complete — ${Number(message.tick_count).toLocaleString()} ticks.`);

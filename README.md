@@ -43,7 +43,8 @@ Then click **Connect** and authenticate with a valid Upstox token.
 
 ## Volume Profile
 
-Click **Select Range** (or press **Q**), then drag across the loaded chart to request a profile
+Open **Drawing Tools**, click **Select Range** (or press **Q**), then drag
+across the loaded chart to request a profile
 for that historical time range. The volume histogram, point of control (POC),
 70% value area (VAH/VAL), and volume-weighted average price (VWAP) are
 calculated locally from the loaded historical ticks. The backend is requested
@@ -63,16 +64,16 @@ double-click within its time range to select it, click once to deselect it, or
 press **D** to delete it. The selected profile is highlighted. Load chart
 history covering the range before profiling it.
 
-## Drawing Rectangles
+## Drawing Tools
 
-Open **Drawing Tools** in the right sidebar, then click **Draw rectangle** or
-press **R** to arm a single rectangle. Click and drag over the chart to draw
-it; drawing mode exits when the drag ends. Choose red or green with the fill
-color swatches before drawing. Click a rectangle to select it, then double-click
-it to delete that rectangle. Use **Clear rectangles** to remove all drawn
-areas. You can draw across empty time slots and into future chart space. Press
-**Escape** to cancel drawing. Rectangles are cleared when the selected
-instrument or loaded history changes.
+Open **Drawing Tools** in the right drawer. Click **Draw one rectangle** or
+press **R**, then drag on the chart to draw a rectangle. Click **Draw trend
+line** or press **T**, then drag from the trend line's start point to its end
+point. Drawing mode exits when the drag ends; press **Escape** to cancel.
+Choose red or green for rectangles with the fill color swatches. Click a
+rectangle or trend line to select it, then double-click it to delete it.
+**Clear drawings** removes all rectangles and trend lines. Drawings are cleared
+when the selected instrument or loaded history changes.
 
 ## Refreshing Bubbles
 
@@ -86,7 +87,8 @@ Connect to the WebSocket server, select a futures contract, choose a trading
 date, chart interval, and playback speed in the **Tick Replay** panel of the
 right-side drawer, then click **Replay**.
 The server streams that session's stored PostgreSQL ticks in timestamp order;
-**Pause/Resume** and **Stop** control playback. Replay uses Asia/Kolkata date
+adjust the speed selector while playback is running or paused. **Pause/Resume**
+and **Stop** control playback. Replay uses Asia/Kolkata date
 boundaries and requires a complete saved session of no more than
 `MAX_HISTORY_TICKS` (default 200,000). It does not place orders. Load a live
 chart again to return that browser session to the live feed.
