@@ -5,6 +5,7 @@
 let wsRetryTmr = null;
 let wsAutoReconnect = true;
 let wsReconnectPending = false;
+let bubbleRefreshAfterReconnect = false;
 
 function connectWS() {
   clearAlerts();
@@ -71,13 +72,18 @@ function connectWS() {
       if (wsReconnectPending) {
         wsReconnectPending = false;
         if (selSym) {
+          bubbleRefreshAfterReconnect = true;
           socket.send(JSON.stringify({
             type:'subscribe', symbol:selSym, interval:selIv, display_interval:selIv,
           }));
         }
       }
     }
-    else if (t === 'auth_fail') { setTok(false,'❌ '+msg.message); showAlert('err','⚠ '+msg.message,false); }
+    else if (t === 'auth_fail') {
+      bubbleRefreshAfterReconnect = false;
+      setTok(false,'❌ '+msg.message);
+      showAlert('err','⚠ '+msg.message,false);
+    }
     else if (t === 'init') {
       if (msg.candles && msg.candles.length > 0) {
         if (!lwChart && !initCharts()) return;
@@ -108,6 +114,10 @@ function connectWS() {
       document.getElementById('s-sym').textContent  = msg.symbol;
       document.getElementById('s-iv').textContent   = ivLabel(selIv);
       document.getElementById('sym-disp').textContent = msg.symbol;
+      if (bubbleRefreshAfterReconnect && msg.symbol === selSym) {
+        bubbleRefreshAfterReconnect = false;
+        refreshBubbles();
+      }
     }
     else if (t === 'symbol_history') {
       if (replayState !== 'idle') setReplayState('idle', 'Live chart loaded.');
@@ -245,6 +255,7 @@ function connectWS() {
 function disconnectWS(){
   wsAutoReconnect = false;
   wsReconnectPending = false;
+  bubbleRefreshAfterReconnect = false;
   if (wsRetryTmr) {
     clearTimeout(wsRetryTmr);
     wsRetryTmr = null;

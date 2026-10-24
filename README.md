@@ -117,6 +117,24 @@ sudo systemctl status cloudflared
 
 Do not use `cloudflared tunnel --url`; that creates a temporary Quick Tunnel URL.
 
+## Iotamines Server
+
+The second backend runs on the Iotamines VM. Its WebSocket URL is:
+
+```text
+wss://iotamines-socket.tradingcharts.win/ws
+```
+
+To connect this futures page to Iotamines, add the `ws` query parameter:
+
+```text
+https://futures.tradingcharts.win/?ws=wss%3A%2F%2Fiotamines-socket.tradingcharts.win%2Fws
+```
+
+Without the `ws` parameter, the page uses its default Oracle WebSocket URL.
+The Iotamines PostgreSQL database is separate from Oracle and has its own tick
+history.
+
 ### Deploying New Features
 
 Vercel deploys this repository's static frontend only. It does not deploy the
