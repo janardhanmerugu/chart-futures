@@ -20,6 +20,7 @@ function connectWS() {
   if (ws) ws.close();
   setStatus('connecting','CONNECTING…');
   const socketUrl = CONFIG.WEBSOCKET_URL;
+  connectionTracker.attempt(socketUrl);
 
   try {
     ws = new WebSocket(socketUrl);
@@ -32,6 +33,7 @@ function connectWS() {
   const socket = ws;
 
   socket.onopen = () => {
+    connectionTracker.opened();
     safeCall(() => {
       setStatus('authed','● CONNECTED');
       document.getElementById('connectBtn').disabled    = true;
@@ -63,6 +65,7 @@ function connectWS() {
   socket.onmessage = e => {
     try {
       let msg; try{msg=JSON.parse(e.data);}catch(_){return;}
+      connectionTracker.message();
       tickCnt++;
       const t = msg.type;
 
@@ -133,6 +136,7 @@ function connectWS() {
       setTimeout(() => goToLatestCandle(), 250);
     }
     else if (t === 'status') {
+      connectionTracker.serverStatus(msg.status, msg.diagnostic);
       if (msg.status==='connected') {
         clearAlerts();
         showAlert('ok',`✅ Live: ${msg.symbol} @ ${ivLabel(selIv)}`);
@@ -219,13 +223,15 @@ function connectWS() {
     }
   };
 
-  socket.onerror = () => {
+  socket.onerror = (event) => {
+    connectionTracker.error(event && event.message);
     setStatus('err','ERROR');
     showAlert('err',`⚠ Cannot connect to ${socketUrl}\n→ Check the server, cloud URL, and network access, then retry.`,false);
   };
   
-  socket.onclose = () => {
+  socket.onclose = (event) => {
     if (ws !== socket) return;
+    connectionTracker.closed(event);
     try {
       cancelBubbleRefresh();
       setStatus('idle','DISCONNECTED');
