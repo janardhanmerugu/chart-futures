@@ -70,3 +70,4 @@ const connectionTracker = (() => {
 })();
 
 window.connectionDiagnostics = () => connectionTracker.history();
+window.connectionDiagnostics.clear = () => connectionTracker.clear();
