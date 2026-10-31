@@ -66,71 +66,57 @@
       </div>
     </div>
 
-    <!-- LOAD HISTORY FROM POSTGRESQL -->
-    <div class="drawer-section">
-      <div class="drawer-section-title">🗄️ Load History</div>
-      <div style="display:flex;flex-direction:column;gap:.35rem">
-        <!-- Date filter + refresh -->
-        <div style="display:flex;gap:.3rem;align-items:center">
-          <input type="date" id="db-date-filter" class="hist-date" style="flex:1;min-width:0"
-            title="Filter by date (leave blank for all)"/>
-          <button class="hbtn primary" style="padding:.22rem .55rem;font-size:.65rem"
-            onclick="dbListSaved()" title="Fetch available datasets from server">↺ List</button>
-        </div>
-        <span id="db-list-status" style="font-size:.6rem;color:var(--muted)">Select a date + click ↺ List</span>
-        <!-- Scrollable dataset list -->
-        <div id="db-dataset-list" style="
-          display:flex;flex-direction:column;gap:.25rem;
-          max-height:220px;overflow-y:auto;
-          border:1px solid var(--border);border-radius:6px;
-          padding:.3rem .35rem;background:#080d16;
-        "></div>
-      </div>
-    </div>
-
     <!-- SYMBOLS + INTERVAL + LOAD -->
     <div id="sym-panel">
-      <div class="sg">
-        <div class="sgl">📊 Indices</div>
-        <div class="sym-row">
-          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty 50',this)">Nifty 50</button>
-          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Bank',this)">Bank Nifty</button>
-          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Fin Service',this)">Fin Nifty</button>
-          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Midcap 50',this)">Midcap 50</button>
-          <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty IT',this)">Nifty IT</button>
-          <button class="sbtn" onclick="pickSym('BSE_INDEX|SENSEX',this)">Sensex</button>
+      <section id="symbol-drawer" class="symbol-drawer collapsed">
+        <button id="symbol-drawer-toggle" class="symbol-drawer-toggle" type="button"
+          aria-expanded="false" aria-controls="symbol-drawer-content" onclick="toggleSymbolDrawer()">
+          <span>📌 Symbols</span><span class="symbol-drawer-chevron">+</span>
+        </button>
+        <div id="symbol-drawer-content" class="symbol-drawer-content">
+          <div class="sg">
+            <div class="sgl">📊 Indices</div>
+            <div class="sym-row">
+              <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty 50',this)">Nifty 50</button>
+              <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Bank',this)">Bank Nifty</button>
+              <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Fin Service',this)">Fin Nifty</button>
+              <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty Midcap 50',this)">Midcap 50</button>
+              <button class="sbtn" onclick="pickSym('NSE_INDEX|Nifty IT',this)">Nifty IT</button>
+              <button class="sbtn" onclick="pickSym('BSE_INDEX|SENSEX',this)">Sensex</button>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="sgl">🏢 Large Cap</div>
+            <div class="sym-row">
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE002A01018',this)">Reliance</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE009A01021',this)">Infosys</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE467B01029',this)">TCS</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE040A01034',this)">HDFC Bank</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE154A01025',this)">ITC</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE075A01022',this)">Wipro</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE585B01010',this)">Maruti</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE296A01024',this)">Bajaj Fin</button>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="sgl">🏦 Banking</div>
+            <div class="sym-row">
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE238A01034',this)">Axis Bank</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE090A01021',this)">ICICI Bank</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE062A01020',this)">SBI</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE160A01022',this)">PNB</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE848E01016',this)">NHPC</button>
+              <button class="sbtn" onclick="pickSym('NSE_EQ|INE669E01016',this)">IRFC</button>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="sgl">✏️ Custom</div>
+            <div class="sym-row">
+              <input id="custom-sym" type="text" placeholder="NSE_EQ|ISIN" onkeydown="if(event.key==='Enter')loadSym()"/>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="sg">
-        <div class="sgl">🏢 Large Cap</div>
-        <div class="sym-row">
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE002A01018',this)">Reliance</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE009A01021',this)">Infosys</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE467B01029',this)">TCS</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE040A01034',this)">HDFC Bank</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE154A01025',this)">ITC</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE075A01022',this)">Wipro</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE585B01010',this)">Maruti</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE296A01024',this)">Bajaj Fin</button>
-        </div>
-      </div>
-      <div class="sg">
-        <div class="sgl">🏦 Banking</div>
-        <div class="sym-row">
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE238A01034',this)">Axis Bank</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE090A01021',this)">ICICI Bank</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE062A01020',this)">SBI</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE160A01022',this)">PNB</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE848E01016',this)">NHPC</button>
-          <button class="sbtn" onclick="pickSym('NSE_EQ|INE669E01016',this)">IRFC</button>
-        </div>
-      </div>
-      <div class="sg">
-        <div class="sgl">✏️ Custom</div>
-        <div class="sym-row">
-          <input id="custom-sym" type="text" placeholder="NSE_EQ|ISIN" onkeydown="if(event.key==='Enter')loadSym()"/>
-        </div>
-      </div>
+      </section>
       <div class="sg">
         <div class="sgl">⏱ Interval</div>
         <div class="iv-group">
@@ -183,15 +169,6 @@
         </div>
       </div>
 
-      <!-- H-LINES — keyboard shortcuts only, no buttons -->
-      <div class="sg">
-        <div class="sgl">📏 H-Lines</div>
-        <div style="display:flex;flex-direction:column;gap:.25rem;font-size:.6rem;color:var(--muted);line-height:1.8">
-          <div><span style="color:var(--accent);font-weight:600">Ctrl + Left-click</span> &nbsp;add / remove line</div>
-          <div><span style="color:var(--accent);font-weight:600">Ctrl + C</span> &nbsp;clear all lines</div>
-        </div>
-      </div>
-
       <div class="sg">
         <div class="sgl">History range</div>
         <div class="history-range">
@@ -200,6 +177,28 @@
         </div>
       </div>
       <button class="load-btn" id="loadBtn" onclick="loadSym()" disabled>▶ Load</button>
+    </div>
+
+    <!-- LOAD HISTORY FROM POSTGRESQL -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">🗄️ Load History</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem">
+        <!-- Date filter + refresh -->
+        <div style="display:flex;gap:.3rem;align-items:center">
+          <input type="date" id="db-date-filter" class="hist-date" style="flex:1;min-width:0"
+            title="Filter by date (leave blank for all)"/>
+          <button class="hbtn primary" style="padding:.22rem .55rem;font-size:.65rem"
+            onclick="dbListSaved()" title="Fetch available datasets from server">↺ List</button>
+        </div>
+        <span id="db-list-status" style="font-size:.6rem;color:var(--muted)">Select a date + click ↺ List</span>
+        <!-- Scrollable dataset list -->
+        <div id="db-dataset-list" style="
+          display:flex;flex-direction:column;gap:.25rem;
+          max-height:220px;overflow-y:auto;
+          border:1px solid var(--border);border-radius:6px;
+          padding:.3rem .35rem;background:#080d16;
+        "></div>
+      </div>
     </div>
 
   </div><!-- /side-drawer -->
@@ -316,7 +315,6 @@
               data-color="#00e676" aria-label="Green fill" aria-pressed="false"
               title="Green fill" onclick="RD.setColor('#00e676')"></button>
           </div>
-          <span class="drawing-hint">Press R for a rectangle or T for a trend line, then drag once. Click to select; double-click to delete.</span>
           <div class="drawing-tool-group">
             <div class="drawing-tool-subtitle"><span class="right-panel-icon">▥</span> VOLUME PROFILE</div>
             <div id="volume-profile-controls">
@@ -346,16 +344,24 @@
             </label>
             <span id="vp-status" aria-live="polite">Load chart history to get historical ticks</span>
           </div>
+          <span class="drawing-hint">Press R for a rectangle or T for a trend line, then drag once. Click to select; double-click to delete.</span>
+          <div class="drawing-tool-group">
+            <div class="drawing-tool-subtitle"><span class="right-panel-icon">📏</span> H-LINES HELP</div>
+            <div class="drawing-hint">
+              <div><strong>Ctrl + Left-click</strong> add / remove line</div>
+              <div><strong>Ctrl + C</strong> clear all lines</div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="right-panel" id="sr-panel">
-        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="sr-panel-body"
+      <section class="right-panel panel-collapsed" id="sr-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="false" aria-controls="sr-panel-body"
           onclick="toggleRightPanel('sr-panel')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('sr-panel')}">
-          <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">−</span>
+          <span><span class="right-panel-icon">⌁</span> SUPPORT &amp; RESISTANCE</span><span class="panel-chevron">+</span>
         </div>
-        <div class="right-panel-body" id="sr-panel-body">
+        <div class="right-panel-body" id="sr-panel-body" hidden>
           <div class="sr-hint">Select a date range. Defaults to the last day.</div>
           <div class="sr-date-range">
             <label for="sr-date-from">From<input id="sr-date-from" class="sr-price-input" type="date"/></label>
@@ -377,13 +383,13 @@
         </div>
       </section>
 
-      <section class="right-panel" id="futures-bubble-panel">
-        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true" aria-controls="futures-bubble-body"
+      <section class="right-panel panel-collapsed" id="futures-bubble-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="false" aria-controls="futures-bubble-body"
           onclick="toggleRightPanel('futures-bubble-panel')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('futures-bubble-panel')}">
-          <span><span class="right-panel-icon">◉</span> AG CIRCLES</span><span class="panel-chevron">−</span>
+          <span><span class="right-panel-icon">◉</span> AG CIRCLES</span><span class="panel-chevron">+</span>
         </div>
-        <div class="right-panel-body" id="futures-bubble-body"></div>
+        <div class="right-panel-body" id="futures-bubble-body" hidden></div>
       </section>
 
       <section class="right-panel" id="active-subscriptions-panel">
@@ -402,14 +408,14 @@
         </div>
       </section>
 
-      <section class="right-panel" id="replay-panel">
-        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="true"
+      <section class="right-panel panel-collapsed" id="replay-panel">
+        <div class="right-panel-title" role="button" tabindex="0" aria-expanded="false"
           aria-controls="replay-panel-body"
           onclick="toggleRightPanel('replay-panel')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRightPanel('replay-panel')}">
-          <span><span class="right-panel-icon">▶</span> TICK REPLAY</span><span class="panel-chevron">−</span>
+          <span><span class="right-panel-icon">▶</span> TICK REPLAY</span><span class="panel-chevron">+</span>
         </div>
-        <div class="right-panel-body" id="replay-panel-body">
+        <div class="right-panel-body" id="replay-panel-body" hidden>
           <div class="replay-controls">
             <label for="replay-date">Trading date</label>
             <input id="replay-date" class="hist-date" type="date"/>

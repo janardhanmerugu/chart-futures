@@ -3,6 +3,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ──── Bubble Control ────
+function toggleSymbolDrawer() {
+  const drawer = document.getElementById('symbol-drawer');
+  const toggle = document.getElementById('symbol-drawer-toggle');
+  if (!drawer || !toggle) return;
+  const collapsed = drawer.classList.toggle('collapsed');
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  const chevron = toggle.querySelector('.symbol-drawer-chevron');
+  if (chevron) chevron.textContent = collapsed ? '+' : '−';
+}
+
 function setCandlesVisible(visible) {
   candlesOn = Boolean(visible);
   if (cSeries) cSeries.applyOptions({visible: candlesOn});
